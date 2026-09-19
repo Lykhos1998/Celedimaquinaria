@@ -8,19 +8,44 @@ import type { TipoServicio } from "@prisma/client";
 const TIPOS = Object.keys(TIPO_SERVICIO_LABEL) as TipoServicio[];
 
 export type EquipoOption = { id: string; codigo: string; marca: string; modelo: string };
+export type ReporteDanoOption = {
+  id: string;
+  folio: string;
+  equipoId: string;
+  equipoCodigo: string;
+  resumenDanos: string;
+};
 
-export function OrdenForm({ equipos }: { equipos: EquipoOption[] }) {
+export function OrdenForm({
+  equipos,
+  reportesConDanos,
+}: {
+  equipos: EquipoOption[];
+  reportesConDanos: ReporteDanoOption[];
+}) {
   const [equipoId, setEquipoId] = useState(equipos[0]?.id ?? "");
   const [tipo, setTipo] = useState<TipoServicio>("PREVENTIVO");
   const [descripcion, setDescripcion] = useState("");
+  const [reporteInspeccionId, setReporteInspeccionId] = useState("");
   const [pending, startTransition] = useTransition();
+
+  function handleReporteChange(id: string) {
+    setReporteInspeccionId(id);
+    const reporte = reportesConDanos.find((r) => r.id === id);
+    if (reporte) {
+      setEquipoId(reporte.equipoId);
+      setTipo("CORRECTIVO");
+      setDescripcion(`Reparar daños de ${reporte.folio}: ${reporte.resumenDanos}`);
+    }
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!equipoId || !descripcion.trim()) return;
     startTransition(async () => {
-      await crearOrden({ equipoId, tipo, descripcion });
+      await crearOrden({ equipoId, tipo, descripcion, reporteInspeccionId: reporteInspeccionId || undefined });
       setDescripcion("");
+      setReporteInspeccionId("");
     });
   }
 
@@ -35,12 +60,32 @@ export function OrdenForm({ equipos }: { equipos: EquipoOption[] }) {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {reportesConDanos.length > 0 && (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  Reporte de Área de Daños sin orden (opcional)
+                </label>
+                <select
+                  value={reporteInspeccionId}
+                  onChange={(e) => handleReporteChange(e.target.value)}
+                  className="w-full rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
+                >
+                  <option value="">Ninguno — orden independiente</option>
+                  {reportesConDanos.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.folio} — {r.equipoCodigo}: {r.resumenDanos}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted">Unidad</label>
               <select
                 value={equipoId}
+                disabled={!!reporteInspeccionId}
                 onChange={(e) => setEquipoId(e.target.value)}
-                className="w-full rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
+                className="w-full rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-foreground outline-none focus:border-brand disabled:opacity-60"
               >
                 {equipos.map((eq) => (
                   <option key={eq.id} value={eq.id}>

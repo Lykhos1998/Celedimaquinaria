@@ -15,6 +15,7 @@ export type ContratoRow = {
   lead: { nombre: string };
   asesor: { nombre: string };
   equipo: { codigo: string } | null;
+  costoDanos: number;
 };
 
 export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
@@ -38,6 +39,7 @@ export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
                 <th className="px-5 py-2 font-medium">Unidad</th>
                 <th className="px-5 py-2 font-medium">Estado</th>
                 <th className="px-5 py-2 font-medium">Valor mensual</th>
+                <th className="px-5 py-2 font-medium">Daños por cobrar</th>
                 <th className="px-5 py-2 font-medium">Inicio</th>
                 <th className="px-5 py-2 font-medium">Fin</th>
                 <th className="px-5 py-2 font-medium"></th>
@@ -56,6 +58,15 @@ export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
                     </span>
                   </td>
                   <td className="px-5 py-2 text-muted">${c.valorMensual.toLocaleString("es-MX")}</td>
+                  <td className="px-5 py-2">
+                    {c.costoDanos > 0 ? (
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-500">
+                        ${c.costoDanos.toLocaleString("es-MX")}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-2 text-muted">{formatFechaHora(c.fechaInicio)}</td>
                   <td className="px-5 py-2 text-muted">{formatFechaHora(c.fechaFin)}</td>
                   <td className="px-5 py-2 text-right">

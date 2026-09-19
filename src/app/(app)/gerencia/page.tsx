@@ -7,7 +7,7 @@ const ESTADO_MODULOS = [
   { label: "Vigilancia", estado: "construido" as const },
   { label: "Marketing", estado: "construido" as const },
   { label: "Ventas", estado: "construido" as const },
-  { label: "Área de Daños", estado: "definido" as const },
+  { label: "Área de Daños", estado: "construido" as const },
   { label: "Compras", estado: "construido" as const },
   { label: "Taller", estado: "construido" as const },
   { label: "Finanzas", estado: "definido" as const },
@@ -40,6 +40,7 @@ export default async function GerenciaPage() {
     ordenesAbiertas,
     comprasPendientes,
     trasladosEnCurso,
+    danosDetectados,
   ] = await Promise.all([
     prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
     prisma.qRVehiculo.count({
@@ -59,6 +60,7 @@ export default async function GerenciaPage() {
     }),
     prisma.ordenCompra.count({ where: { estado: "PENDIENTE_APROBACION" } }),
     prisma.traslado.count({ where: { estado: { in: ["PROGRAMADO", "EN_TRANSITO"] } } }),
+    prisma.danio.count({ where: { createdAt: { gte: inicioDelDia } } }),
   ]);
 
   return (
@@ -74,6 +76,7 @@ export default async function GerenciaPage() {
         <KpiCard label="Órdenes abiertas en Taller" value={ordenesAbiertas} hint="Taller" />
         <KpiCard label="Compras por aprobar" value={comprasPendientes} hint="Esperando a Dirección" />
         <KpiCard label="Traslados en curso" value={trasladosEnCurso} hint="Logística" />
+        <KpiCard label="Daños detectados hoy" value={danosDetectados} hint="Área de Daños" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">

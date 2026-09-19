@@ -67,6 +67,9 @@ model User {
   ordenesCompraAprobadas   OrdenCompra[] @relation("OrdenCompraAprobadaPor")
 
   trasladosProgramados Traslado[]
+
+  reportesInspeccionados ReporteInspeccion[]
+  danosRegistrados       Danio[]
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -237,6 +240,8 @@ model Contrato {
   // de venta o no traer aún equipo asignado).
   equipo   Equipo? @relation(fields: [equipoId], references: [id])
   equipoId String?
+
+  reportesInspeccion ReporteInspeccion[]
 }
 
 // --- Módulo Equipos / Flota (transversal) -------------------------------
@@ -295,9 +300,10 @@ model Equipo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contratos       Contrato[]
-  ordenesServicio OrdenServicio[]
-  traslados       Traslado[]
+  contratos          Contrato[]
+  ordenesServicio    OrdenServicio[]
+  traslados          Traslado[]
+  reportesInspeccion ReporteInspeccion[]
 
   @@index([estado])
   @@index([categoria])
@@ -336,8 +342,14 @@ model OrdenServicio {
 
   refacciones SolicitudRefaccion[]
 
+  // Reporte de inspección de Área de Daños que originó esta orden correctiva,
+  // si aplica.
+  reporteInspeccion   ReporteInspeccion? @relation(fields: [reporteInspeccionId], references: [id])
+  reporteInspeccionId String?
+
   @@index([equipoId])
   @@index([estado])
+  @@index([reporteInspeccionId])
 }
 
 enum EstadoRefaccion {
@@ -473,4 +485,54 @@ model Traslado {
   @@index([estado])
   @@index([equipoId])
   @@index([camionId])
+}
+
+// --- Módulo Área de Daños -------------------------------------------------
+
+model ReporteInspeccion {
+  id       String @id @default(cuid())
+  folio    String @unique // INS-0001
+  equipo   Equipo @relation(fields: [equipoId], references: [id])
+  equipoId String
+
+  // Contrato de renta que regresa, si la inspección viene de una devolución.
+  contrato   Contrato? @relation(fields: [contratoId], references: [id])
+  contratoId String?
+
+  observaciones String?
+
+  inspeccionadoPor   User   @relation(fields: [inspeccionadoPorId], references: [id])
+  inspeccionadoPorId String
+
+  createdAt DateTime @default(now())
+
+  danos           Danio[]
+  ordenesServicio OrdenServicio[]
+
+  @@index([equipoId])
+  @@index([contratoId])
+}
+
+enum SeveridadDanio {
+  LEVE
+  MODERADA
+  GRAVE
+}
+
+model Danio {
+  id        String            @id @default(cuid())
+  reporte   ReporteInspeccion @relation(fields: [reporteId], references: [id])
+  reporteId String
+  tipo      String
+  severidad SeveridadDanio    @default(LEVE)
+  descripcion   String?
+  fotoUrl       String?
+  costoEstimado Float?
+
+  registradoPor   User   @relation(fields: [registradoPorId], references: [id])
+  registradoPorId String
+
+  createdAt DateTime @default(now())
+
+  @@index([reporteId])
 }

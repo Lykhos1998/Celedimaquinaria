@@ -15,9 +15,15 @@ function revalidarTaller() {
   revalidatePath("/taller");
   revalidatePath("/taller/refacciones");
   revalidatePath("/equipos");
+  revalidatePath("/danos");
 }
 
-export async function crearOrden(data: { equipoId: string; tipo: TipoServicio; descripcion: string }) {
+export async function crearOrden(data: {
+  equipoId: string;
+  tipo: TipoServicio;
+  descripcion: string;
+  reporteInspeccionId?: string;
+}) {
   const userId = await taller();
   const consecutivo = (await prisma.ordenServicio.count()) + 1;
 
@@ -29,6 +35,7 @@ export async function crearOrden(data: { equipoId: string; tipo: TipoServicio; d
         tipo: data.tipo,
         descripcion: data.descripcion,
         creadoPorId: userId,
+        reporteInspeccionId: data.reporteInspeccionId || undefined,
       },
     });
     await tx.equipo.update({

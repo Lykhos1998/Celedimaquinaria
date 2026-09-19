@@ -21,7 +21,7 @@ export const MODULOS: Record<
   vigilancia: { label: "Vigilancia", implementado: true },
   marketing: { label: "Marketing", implementado: true },
   ventas: { label: "Ventas", implementado: true },
-  danos: { label: "Área de Daños", implementado: false },
+  danos: { label: "Área de Daños", implementado: true },
   compras: { label: "Compras", implementado: true },
   taller: { label: "Taller", implementado: true },
   finanzas: { label: "Finanzas", implementado: false },

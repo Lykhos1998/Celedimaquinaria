@@ -22,7 +22,7 @@ export default async function OrdenesServicioPage({
     ...(equipoId ? { equipoId } : {}),
   };
 
-  const [ordenes, equiposElegibles, conteoPorEstado, equipoFiltrado] = await Promise.all([
+  const [ordenes, equiposElegibles, conteoPorEstado, equipoFiltrado, reportesConDanos] = await Promise.all([
     prisma.ordenServicio.findMany({
       where,
       include: { equipo: true, refacciones: true },
@@ -35,6 +35,11 @@ export default async function OrdenesServicioPage({
     }),
     prisma.ordenServicio.groupBy({ by: ["estado"], _count: { _all: true } }),
     equipoId ? prisma.equipo.findUnique({ where: { id: equipoId }, select: { codigo: true } }) : null,
+    prisma.reporteInspeccion.findMany({
+      where: { danos: { some: {} }, ordenesServicio: { none: {} } },
+      include: { equipo: true, danos: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const conteoMap = new Map(conteoPorEstado.map((c) => [c.estado, c._count._all]));
@@ -58,7 +63,16 @@ export default async function OrdenesServicioPage({
         ))}
       </div>
 
-      <OrdenForm equipos={equiposElegibles} />
+      <OrdenForm
+        equipos={equiposElegibles}
+        reportesConDanos={reportesConDanos.map((r) => ({
+          id: r.id,
+          folio: r.folio,
+          equipoId: r.equipoId,
+          equipoCodigo: r.equipo.codigo,
+          resumenDanos: r.danos.map((d) => d.tipo).join(", "),
+        }))}
+      />
 
       <form className="flex flex-wrap items-end gap-2 rounded-xl border border-border bg-surface p-4">
         {equipoId && <input type="hidden" name="equipoId" value={equipoId} />}

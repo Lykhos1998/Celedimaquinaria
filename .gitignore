@@ -37,6 +37,10 @@ yarn-error.log*
 /prisma/dev.db
 /prisma/dev.db-journal
 
+# user-uploaded files (evidencia fotográfica, etc.) — para producción, mover
+# a un almacenamiento de objetos (S3, etc.) en vez de disco local
+/public/uploads/
+
 # vercel
 .vercel
 

@@ -25,8 +25,9 @@ oscuro y modo claro (toggle en el header).
 | Taller | ✅ Construido (órdenes de servicio, historial por unidad, solicitud de refacciones) |
 | Compras | ✅ Construido (proveedores, órdenes de compra, aprobación por Dirección, cierra el flujo con Taller) |
 | Logística | ✅ Construido (flotilla, traslados, cruce automático con el QR de Vigilancia) |
+| Área de Daños | ✅ Construido (reportes de inspección, daños con evidencia fotográfica, cierra el ciclo con Taller y Ventas) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| Área de Daños, Finanzas, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
+| Finanzas, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 
 ## Arranque local
 
@@ -61,7 +62,7 @@ Contraseña para todos: `celedi2026`
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística, Área de Daños)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
@@ -71,6 +72,7 @@ src/lib/equipos.ts            Constantes y helpers del módulo Equipos/Flota (es
 src/lib/taller.ts             Constantes y helpers del módulo Taller (estados, folio de orden)
 src/lib/compras.ts            Constantes y helpers del módulo Compras (estados, áreas, folio de OC)
 src/lib/logistica.ts          Constantes, folio y el cruce con el QR de Vigilancia (procesarEscaneoQR)
+src/lib/danos.ts              Constantes y folio del módulo Área de Daños
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
@@ -79,7 +81,9 @@ src/app/(app)/equipos/        Módulo Equipos/Flota (catálogo, tarifario)
 src/app/(app)/taller/         Módulo Taller (órdenes de servicio, refacciones)
 src/app/(app)/compras/        Módulo Compras (órdenes de compra, proveedores)
 src/app/(app)/logistica/      Módulo Logística (traslados, flotilla)
+src/app/(app)/danos/          Módulo Área de Daños (inspecciones, daños con foto)
 src/app/(app)/gerencia/       Vista global de Gerencia
+public/uploads/danos/         Evidencia fotográfica subida (no versionada, ver nota abajo)
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
 ```
@@ -159,15 +163,37 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
   y simplemente no dispara ningún cambio en Logística — el cruce es "mejor esfuerzo", nunca
   bloquea el registro del escaneo.
 
+### Notas sobre el módulo Área de Daños
+
+- Cierra el ciclo completo de devolución de equipo documentado en la especificación: un
+  `ReporteInspeccion` (folio `INS-XXXX`) se liga a la unidad y, opcionalmente, al contrato
+  de renta que regresa; cada `Danio` encontrado lleva tipo, severidad, descripción, costo
+  estimado y evidencia fotográfica opcional.
+- **Evidencia fotográfica real**: la foto se sube como archivo (server action que recibe
+  `FormData` con un `File`, valida tipo `image/*` y tamaño ≤ 5 MB) y se guarda en
+  `public/uploads/danos/` con un nombre aleatorio, sirviéndose como cualquier archivo
+  estático de Next.js. Esa carpeta está en `.gitignore` porque es contenido subido por
+  usuarios, no código fuente — **para producción, reemplazar el disco local por un
+  almacenamiento de objetos (S3 o equivalente)**, ya que el disco de un contenedor no es
+  persistente ni se comparte entre instancias.
+- Conexión hacia Taller: `src/app/(app)/taller/page.tsx` consulta los reportes que tienen
+  al menos un daño y ninguna `OrdenServicio` ligada todavía, y el formulario de nueva orden
+  los ofrece como cola — elegir uno fija la unidad, pone el tipo en Correctivo y prellena la
+  descripción con los daños encontrados (editable antes de guardar).
+- Conexión hacia Ventas: `src/app/(app)/ventas/contratos/page.tsx` suma el costo estimado de
+  los daños ligados a cada contrato y lo muestra como badge "Daños por cobrar" — la
+  especificación pide que Ventas gestione el cobro, pero como Finanzas todavía no existe,
+  por ahora es solo el indicador de cuánto habría que cobrar, no un cargo real.
+
 ## Próximos pasos sugeridos
 
 Según la sección 7 de la especificación:
 
 1. Validar con Andrei los módulos marcados como pendientes en el documento, y el detalle de
    compras para RH/Sistemas-TI que sigue como punto abierto.
-2. Área de Daños es un buen candidato para el siguiente módulo: cerraría el flujo de
-   devolución de equipo (Logística entrega la recolección → Área de Daños inspecciona →
-   Taller repara si hay daño → Ventas cobra al cliente si aplica).
+2. Finanzas es un buen candidato para el siguiente módulo: convertiría el "Daños por cobrar"
+   de Ventas y los montos de Compras/Contratos en cuentas por cobrar/pagar reales.
 3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
-4. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).
+4. Para producción: migrar `DATABASE_URL` a PostgreSQL, mover `public/uploads/` a un
+   almacenamiento de objetos, y desplegar (Vercel, Docker, etc.).
