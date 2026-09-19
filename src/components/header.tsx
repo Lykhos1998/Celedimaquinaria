@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
@@ -10,6 +11,16 @@ import type { Rol } from "@prisma/client";
 export function Header({ nombre, rol }: { nombre: string; rol: Rol }) {
   const { resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // El tema real solo se conoce tras montar (next-themes lo resuelve del
+  // localStorage vía script inyectado); hasta entonces mostramos un ícono
+  // fijo para que el HTML del servidor y el primer render del cliente
+  // coincidan y no se dispare una re-hidratación.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver comentario arriba
+    setMounted(true);
+  }, []);
 
   const slug = pathname.split("/")[1] as ModuloSlug | undefined;
   const title = slug && MODULOS[slug] ? MODULOS[slug].label : "Celedi Maquinaria";
@@ -24,7 +35,7 @@ export function Header({ nombre, rol }: { nombre: string; rol: Rol }) {
           className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted transition hover:text-foreground"
           aria-label="Cambiar tema"
         >
-          {resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          {mounted && resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
         <div className="text-right">

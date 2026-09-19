@@ -19,8 +19,8 @@ export const MODULOS: Record<
   { label: string; implementado: boolean }
 > = {
   vigilancia: { label: "Vigilancia", implementado: true },
-  marketing: { label: "Marketing", implementado: false },
-  ventas: { label: "Ventas", implementado: false },
+  marketing: { label: "Marketing", implementado: true },
+  ventas: { label: "Ventas", implementado: true },
   danos: { label: "Área de Daños", implementado: false },
   compras: { label: "Compras", implementado: false },
   taller: { label: "Taller", implementado: false },

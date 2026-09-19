@@ -3,19 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
-  { href: "/vigilancia", label: "Checador" },
-  { href: "/vigilancia/qr", label: "QR Camiones" },
-  { href: "/vigilancia/vales", label: "Vales de Salida" },
-  { href: "/vigilancia/incidentes", label: "Bitácora de Incidentes" },
-];
-
-export function VigilanciaTabs() {
+export function ModuleTabs({ tabs }: { tabs: { href: string; label: string }[] }) {
   const pathname = usePathname();
 
   return (
     <div className="flex gap-1 border-b border-border">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = pathname === tab.href;
         return (
           <Link

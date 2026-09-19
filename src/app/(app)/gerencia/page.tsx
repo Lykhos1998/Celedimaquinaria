@@ -5,8 +5,8 @@ import { CheckCircle2, Clock, CircleDashed } from "lucide-react";
 
 const ESTADO_MODULOS = [
   { label: "Vigilancia", estado: "construido" as const },
-  { label: "Marketing", estado: "definido" as const },
-  { label: "Ventas", estado: "definido" as const },
+  { label: "Marketing", estado: "construido" as const },
+  { label: "Ventas", estado: "construido" as const },
   { label: "Área de Daños", estado: "definido" as const },
   { label: "Compras", estado: "parcial" as const },
   { label: "Taller", estado: "definido" as const },
@@ -29,17 +29,20 @@ export default async function GerenciaPage() {
   const inicioDelDia = new Date();
   inicioDelDia.setHours(0, 0, 0, 0);
 
-  const [checadasHoy, camionesEnTransito, valesActivos, incidentesHoy] = await Promise.all([
-    prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
-    prisma.qRVehiculo.count({
-      where: {
-        timestamp: { gte: inicioDelDia },
-        movimiento: "SALIDA",
-      },
-    }),
-    prisma.valeSalida.count({ where: { estado: { in: ["SOLICITADO", "AUTORIZADO", "EN_SALIDA"] } } }),
-    prisma.incidenteSeguridad.count({ where: { timestamp: { gte: inicioDelDia } } }),
-  ]);
+  const [checadasHoy, camionesEnTransito, valesActivos, incidentesHoy, leadsActivos, contratosActivos] =
+    await Promise.all([
+      prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
+      prisma.qRVehiculo.count({
+        where: {
+          timestamp: { gte: inicioDelDia },
+          movimiento: "SALIDA",
+        },
+      }),
+      prisma.valeSalida.count({ where: { estado: { in: ["SOLICITADO", "AUTORIZADO", "EN_SALIDA"] } } }),
+      prisma.incidenteSeguridad.count({ where: { timestamp: { gte: inicioDelDia } } }),
+      prisma.lead.count({ where: { etapa: { notIn: ["GANADO", "PERDIDO"] } } }),
+      prisma.contrato.count({ where: { cancelado: false, fechaFin: { gte: inicioDelDia } } }),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +51,8 @@ export default async function GerenciaPage() {
         <KpiCard label="Camiones en salida hoy" value={camionesEnTransito} hint="Vigilancia → Logística" />
         <KpiCard label="Vales de salida activos" value={valesActivos} hint="Sin retornar" />
         <KpiCard label="Incidentes hoy" value={incidentesHoy} hint="Bitácora de seguridad" />
+        <KpiCard label="Leads en pipeline" value={leadsActivos} hint="Comercial" />
+        <KpiCard label="Contratos vigentes" value={contratosActivos} hint="Comercial" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">

@@ -19,8 +19,10 @@ oscuro y modo claro (toggle en el header).
 | Módulo | Estado |
 | --- | --- |
 | Vigilancia | ✅ Construido (checador, QR de camiones, vales de salida, bitácora de incidentes) |
+| Marketing | ✅ Construido (dashboard con KPIs/funnel/pronóstico, captura de leads, gasto publicitario) |
+| Ventas | ✅ Construido (pipeline kanban, cierre de contratos, mi cartera, listado de contratos) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| Marketing, Ventas, Área de Daños, Taller, Finanzas, Logística, RH, Equipos/Flota, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
+| Área de Daños, Taller, Finanzas, Logística, RH, Equipos/Flota, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 | Compras | 🕓 Parcialmente definido (falta cerrar detalle de compras para RH/TI) |
 
 ## Arranque local
@@ -56,17 +58,32 @@ Contraseña para todos: `celedi2026`
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles + entidades de Vigilancia)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
-src/middleware.ts             Protección de rutas por sesión
+src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
 src/lib/roles.ts              Mapeo de módulos visibles por rol
+src/lib/comercial.ts          Constantes y helpers del módulo Comercial (etapas, folios, estado de contrato)
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
-src/app/(app)/vigilancia/     Módulo Vigilancia (único módulo funcional por ahora)
+src/app/(app)/vigilancia/     Módulo Vigilancia
+src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
+src/app/(app)/ventas/         Módulo Ventas (pipeline kanban, mi cartera, contratos)
 src/app/(app)/gerencia/       Vista global de Gerencia
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
 ```
+
+### Notas sobre el módulo Comercial
+
+- El folio de lead (`EXP-XXXX`) se genera al capturarlo en Marketing; el folio de contrato
+  (`CTR-AAAA-XXXX`) se genera al marcarlo como Ganado en Ventas.
+- El estado del contrato (En Firma / Activo / Por Vencer / Terminado) se calcula en cada
+  lectura a partir de sus fechas (`src/lib/comercial.ts#estadoContrato`), no se guarda como
+  campo manual — así no depende de un job programado.
+- El "Pronóstico de cierre" del dashboard de Marketing usa una probabilidad fija por etapa
+  del pipeline (heurística simple, documentada en la propia página), no un modelo estadístico.
+- La comisión del asesor es una tasa fija de ejemplo (5% del valor mensual del contrato) —
+  ajustar en `src/lib/comercial.ts#comisionEstimada` cuando se defina la regla real.
 
 ## Próximos pasos sugeridos
 
@@ -74,8 +91,8 @@ Según la sección 7 de la especificación:
 
 1. Validar con Andrei los módulos marcados como pendientes en el documento.
 2. Cerrar el flujo de aprobación Compras–Taller (y compras para RH/Sistemas-TI).
-3. Priorizar el siguiente módulo a construir (Comercial: Marketing + Ventas + Equipos/Flota
-   es el núcleo del negocio y tiene la referencia visual más detallada).
+3. Priorizar el siguiente módulo a construir (Equipos/Flota es un buen candidato: alimenta
+   el tarifario que Ventas necesita para cotizar con precisión).
 4. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
 5. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).

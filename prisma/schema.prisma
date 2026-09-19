@@ -48,6 +48,15 @@ model User {
   valesValidados       ValeSalida[] @relation("ValidadoPor")
 
   incidentesRegistrados IncidenteSeguridad[]
+
+  // Comercial — leads que este usuario (asesor de ventas) tiene asignados
+  leadsAsignados Lead[] @relation("AsesorLead")
+  // Comercial — leads que este usuario (marketing) capturó
+  leadsCreados   Lead[] @relation("CreadoPorLead")
+
+  gastosPublicitarios GastoPublicitario[]
+
+  contratos Contrato[]
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -126,4 +135,91 @@ model IncidenteSeguridad {
   timestamp       DateTime           @default(now())
   registradoPor   User               @relation(fields: [registradoPorId], references: [id])
   registradoPorId String
+}
+
+// --- Módulo Comercial (Marketing + Ventas) ------------------------------
+
+enum CanalLead {
+  REDES_SOCIALES
+  COTIZACION_DIRECTA
+  TELEFONO
+  FORMULARIO_WEB
+}
+
+enum TipoTrabajo {
+  RENTA
+  VENTA
+}
+
+// Etapas del pipeline pre-venta, más los dos cierres posibles (GANADO/PERDIDO).
+enum EtapaLead {
+  LEAD_NUEVO
+  CALIFICADO
+  CONTACTADO
+  PROPUESTA
+  NEGOCIACION
+  GANADO
+  PERDIDO
+}
+
+enum Temperatura {
+  FRIO
+  TIBIO
+  CALIENTE
+}
+
+model Lead {
+  id            String      @id @default(cuid())
+  folio         String      @unique // EXP-XXXX
+  nombre        String
+  telefono      String?
+  email         String?
+  canal         CanalLead
+  tipoTrabajo   TipoTrabajo
+  ubicacion     String?
+  valorEstimado Float?
+  etapa         EtapaLead   @default(LEAD_NUEVO)
+  temperatura   Temperatura @default(TIBIO)
+  motivoPerdida String?
+  valorPerdido  Float?
+
+  asesor   User?   @relation("AsesorLead", fields: [asesorId], references: [id])
+  asesorId String?
+
+  creadoPor   User   @relation("CreadoPorLead", fields: [creadoPorId], references: [id])
+  creadoPorId String
+
+  createdAt DateTime  @default(now())
+  cerradoAt DateTime?
+
+  contrato Contrato?
+
+  @@index([canal])
+  @@index([etapa])
+  @@index([asesorId])
+}
+
+model GastoPublicitario {
+  id         String     @id @default(cuid())
+  plataforma String
+  canal      CanalLead?
+  monto      Float
+  fecha      DateTime   @default(now())
+
+  registradoPor   User   @relation(fields: [registradoPorId], references: [id])
+  registradoPorId String
+}
+
+model Contrato {
+  id           String   @id @default(cuid())
+  folio        String   @unique // CTR-AAAA-XXXX
+  lead         Lead     @relation(fields: [leadId], references: [id])
+  leadId       String   @unique
+  asesor       User     @relation(fields: [asesorId], references: [id])
+  asesorId     String
+  valorMensual Float
+  fechaInicio  DateTime
+  fechaFin     DateTime
+  cancelado    Boolean  @default(false)
+  createdAt    DateTime @default(now())
 }
