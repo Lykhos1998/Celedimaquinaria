@@ -1,7 +1,13 @@
 import { ETAPAS_PIPELINE, ETAPA_LABEL } from "@/lib/comercial";
-import { KanbanCard, type LeadCardData } from "@/components/ventas/kanban-card";
+import { KanbanCard, type EquipoDisponible, type LeadCardData } from "@/components/ventas/kanban-card";
 
-export function KanbanBoard({ leads }: { leads: LeadCardData[] }) {
+export function KanbanBoard({
+  leads,
+  equiposDisponibles,
+}: {
+  leads: LeadCardData[];
+  equiposDisponibles: EquipoDisponible[];
+}) {
   return (
     <div className="grid grid-cols-1 gap-4 overflow-x-auto sm:grid-cols-2 lg:grid-cols-5">
       {ETAPAS_PIPELINE.map((etapa) => {
@@ -22,7 +28,9 @@ export function KanbanBoard({ leads }: { leads: LeadCardData[] }) {
                   Sin leads
                 </p>
               ) : (
-                columna.map((lead) => <KanbanCard key={lead.id} lead={lead} />)
+                columna.map((lead) => (
+                  <KanbanCard key={lead.id} lead={lead} equiposDisponibles={equiposDisponibles} />
+                ))
               )}
             </div>
           </div>

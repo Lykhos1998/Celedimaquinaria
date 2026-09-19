@@ -14,6 +14,7 @@ export type ContratoRow = {
   estado: EstadoContrato;
   lead: { nombre: string };
   asesor: { nombre: string };
+  equipo: { codigo: string } | null;
 };
 
 export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
@@ -34,6 +35,7 @@ export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
                 <th className="px-5 py-2 font-medium">Folio</th>
                 <th className="px-5 py-2 font-medium">Cliente</th>
                 <th className="px-5 py-2 font-medium">Asesor</th>
+                <th className="px-5 py-2 font-medium">Unidad</th>
                 <th className="px-5 py-2 font-medium">Estado</th>
                 <th className="px-5 py-2 font-medium">Valor mensual</th>
                 <th className="px-5 py-2 font-medium">Inicio</th>
@@ -47,6 +49,7 @@ export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
                   <td className="px-5 py-2 font-mono text-xs text-foreground">{c.folio}</td>
                   <td className="px-5 py-2 text-foreground">{c.lead.nombre}</td>
                   <td className="px-5 py-2 text-muted">{c.asesor.nombre}</td>
+                  <td className="px-5 py-2 font-mono text-xs text-muted">{c.equipo?.codigo ?? "—"}</td>
                   <td className="px-5 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_CONTRATO_STYLE[c.estado]}`}>
                       {ESTADO_CONTRATO_LABEL[c.estado]}

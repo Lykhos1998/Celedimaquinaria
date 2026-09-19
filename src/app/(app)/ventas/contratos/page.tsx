@@ -4,7 +4,7 @@ import { estadoContrato } from "@/lib/comercial";
 
 export default async function ContratosPage() {
   const contratos = await prisma.contrato.findMany({
-    include: { lead: true, asesor: true },
+    include: { lead: true, asesor: true, equipo: true },
     orderBy: { createdAt: "desc" },
   });
 

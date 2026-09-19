@@ -17,6 +17,7 @@ function revalidarComercial() {
   revalidatePath("/ventas/contratos");
   revalidatePath("/marketing");
   revalidatePath("/marketing/leads");
+  revalidatePath("/equipos");
 }
 
 export async function avanzarEtapa(leadId: string, etapa: EtapaLead) {
@@ -39,7 +40,7 @@ export async function asignarAsesor(leadId: string, asesorId: string) {
 
 export async function marcarGanado(
   leadId: string,
-  data: { valorMensual: number; fechaInicio: string; fechaFin: string },
+  data: { valorMensual: number; fechaInicio: string; fechaFin: string; equipoId?: string },
 ) {
   const userId = await ventas();
   const lead = await prisma.lead.findUniqueOrThrow({ where: { id: leadId } });
@@ -47,12 +48,12 @@ export async function marcarGanado(
   const anio = new Date().getFullYear();
   const consecutivo = (await prisma.contrato.count({ where: { folio: { startsWith: `CTR-${anio}-` } } })) + 1;
 
-  await prisma.$transaction([
-    prisma.lead.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.lead.update({
       where: { id: leadId },
       data: { etapa: "GANADO", cerradoAt: new Date() },
-    }),
-    prisma.contrato.create({
+    });
+    await tx.contrato.create({
       data: {
         folio: folioContrato(anio, consecutivo),
         leadId,
@@ -60,9 +61,16 @@ export async function marcarGanado(
         valorMensual: data.valorMensual,
         fechaInicio: new Date(data.fechaInicio),
         fechaFin: new Date(data.fechaFin),
+        equipoId: data.equipoId || undefined,
       },
-    }),
-  ]);
+    });
+    if (data.equipoId) {
+      await tx.equipo.update({
+        where: { id: data.equipoId },
+        data: { estado: "RENTADO", actualizadoPorId: userId },
+      });
+    }
+  });
 
   revalidarComercial();
 }

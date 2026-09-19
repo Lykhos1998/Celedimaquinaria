@@ -13,7 +13,7 @@ const ESTADO_MODULOS = [
   { label: "Finanzas", estado: "definido" as const },
   { label: "Logística", estado: "definido" as const },
   { label: "RH", estado: "definido" as const },
-  { label: "Equipos / Flota", estado: "definido" as const },
+  { label: "Equipos / Flota", estado: "construido" as const },
   { label: "Sistemas / TI", estado: "definido" as const },
 ];
 
@@ -29,20 +29,30 @@ export default async function GerenciaPage() {
   const inicioDelDia = new Date();
   inicioDelDia.setHours(0, 0, 0, 0);
 
-  const [checadasHoy, camionesEnTransito, valesActivos, incidentesHoy, leadsActivos, contratosActivos] =
-    await Promise.all([
-      prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
-      prisma.qRVehiculo.count({
-        where: {
-          timestamp: { gte: inicioDelDia },
-          movimiento: "SALIDA",
-        },
-      }),
-      prisma.valeSalida.count({ where: { estado: { in: ["SOLICITADO", "AUTORIZADO", "EN_SALIDA"] } } }),
-      prisma.incidenteSeguridad.count({ where: { timestamp: { gte: inicioDelDia } } }),
-      prisma.lead.count({ where: { etapa: { notIn: ["GANADO", "PERDIDO"] } } }),
-      prisma.contrato.count({ where: { cancelado: false, fechaFin: { gte: inicioDelDia } } }),
-    ]);
+  const [
+    checadasHoy,
+    camionesEnTransito,
+    valesActivos,
+    incidentesHoy,
+    leadsActivos,
+    contratosActivos,
+    equiposDisponibles,
+    equiposTotal,
+  ] = await Promise.all([
+    prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
+    prisma.qRVehiculo.count({
+      where: {
+        timestamp: { gte: inicioDelDia },
+        movimiento: "SALIDA",
+      },
+    }),
+    prisma.valeSalida.count({ where: { estado: { in: ["SOLICITADO", "AUTORIZADO", "EN_SALIDA"] } } }),
+    prisma.incidenteSeguridad.count({ where: { timestamp: { gte: inicioDelDia } } }),
+    prisma.lead.count({ where: { etapa: { notIn: ["GANADO", "PERDIDO"] } } }),
+    prisma.contrato.count({ where: { cancelado: false, fechaFin: { gte: inicioDelDia } } }),
+    prisma.equipo.count({ where: { estado: "DISPONIBLE" } }),
+    prisma.equipo.count(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,6 +63,7 @@ export default async function GerenciaPage() {
         <KpiCard label="Incidentes hoy" value={incidentesHoy} hint="Bitácora de seguridad" />
         <KpiCard label="Leads en pipeline" value={leadsActivos} hint="Comercial" />
         <KpiCard label="Contratos vigentes" value={contratosActivos} hint="Comercial" />
+        <KpiCard label="Unidades disponibles" value={`${equiposDisponibles} / ${equiposTotal}`} hint="Equipos / Flota" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">

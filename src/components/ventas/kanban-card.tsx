@@ -21,6 +21,14 @@ export type LeadCardData = {
   asesorNombre: string | null;
 };
 
+export type EquipoDisponible = {
+  id: string;
+  codigo: string;
+  marca: string;
+  modelo: string;
+  precioMensual: number | null;
+};
+
 const TEMPERATURAS = Object.keys(TEMPERATURA_LABEL) as Temperatura[];
 const MOTIVOS_PERDIDA = ["Precio / flete", "Sin proyecto", "Busca proveedor local", "Otro"];
 
@@ -34,9 +42,16 @@ function en30DiasISO() {
   return d.toISOString().slice(0, 10);
 }
 
-export function KanbanCard({ lead }: { lead: LeadCardData }) {
+export function KanbanCard({
+  lead,
+  equiposDisponibles,
+}: {
+  lead: LeadCardData;
+  equiposDisponibles: EquipoDisponible[];
+}) {
   const [pending, startTransition] = useTransition();
   const [dialog, setDialog] = useState<"ganado" | "perdido" | null>(null);
+  const [valorMensual, setValorMensual] = useState(lead.valorEstimado ?? 0);
 
   const idx = ETAPAS_PIPELINE.indexOf(lead.etapa);
 
@@ -119,6 +134,7 @@ export function KanbanCard({ lead }: { lead: LeadCardData }) {
                 valorMensual: Number(form.get("valorMensual")),
                 fechaInicio: String(form.get("fechaInicio")),
                 fechaFin: String(form.get("fechaFin")),
+                equipoId: String(form.get("equipoId") || "") || undefined,
               });
               setDialog(null);
             });
@@ -126,13 +142,34 @@ export function KanbanCard({ lead }: { lead: LeadCardData }) {
           className="space-y-3"
         >
           <div>
+            <label className="mb-1 block text-xs font-medium text-muted">Unidad asignada (opcional)</label>
+            <select
+              name="equipoId"
+              defaultValue=""
+              onChange={(e) => {
+                const equipo = equiposDisponibles.find((eq) => eq.id === e.target.value);
+                if (equipo?.precioMensual) setValorMensual(equipo.precioMensual);
+              }}
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
+            >
+              <option value="">Sin asignar todavía</option>
+              {equiposDisponibles.map((eq) => (
+                <option key={eq.id} value={eq.id}>
+                  {eq.codigo} — {eq.marca} {eq.modelo}
+                  {eq.precioMensual ? ` ($${eq.precioMensual.toLocaleString("es-MX")}/mes)` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="mb-1 block text-xs font-medium text-muted">Valor mensual del contrato (MXN)</label>
             <input
               required
               name="valorMensual"
               type="number"
               min={0}
-              defaultValue={lead.valorEstimado ?? ""}
+              value={valorMensual}
+              onChange={(e) => setValorMensual(Number(e.target.value))}
               className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
             />
           </div>

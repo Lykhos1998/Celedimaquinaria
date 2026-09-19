@@ -57,6 +57,8 @@ model User {
   gastosPublicitarios GastoPublicitario[]
 
   contratos Contrato[]
+
+  equiposActualizados Equipo[]
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -222,4 +224,71 @@ model Contrato {
   fechaFin     DateTime
   cancelado    Boolean  @default(false)
   createdAt    DateTime @default(now())
+
+  // Unidad de flota asignada a la renta, si aplica (un contrato puede ser
+  // de venta o no traer aún equipo asignado).
+  equipo   Equipo? @relation(fields: [equipoId], references: [id])
+  equipoId String?
+}
+
+// --- Módulo Equipos / Flota (transversal) -------------------------------
+
+enum EstadoEquipo {
+  DISPONIBLE
+  RENTADO
+  EN_TRANSITO
+  EN_MANTENIMIENTO
+  FUERA_DE_SERVICIO
+}
+
+enum Combustible {
+  DIESEL
+  GASOLINA
+  ELECTRICO
+  GAS
+}
+
+// Tarifario centralizado por marca/modelo/clasificación, usado por Ventas
+// al cotizar. Varias unidades físicas (Equipo) pueden compartir una tarifa.
+model TarifaEquipo {
+  id               String   @id @default(cuid())
+  marca            String
+  modelo           String
+  clasificacion    String
+  alturaCapacidad  String?
+  precioMensual    Float
+  precioDia1       Float
+  precioDia7       Float
+  precioDia15      Float
+  createdAt        DateTime @default(now())
+
+  equipos Equipo[]
+}
+
+model Equipo {
+  id          String       @id @default(cuid())
+  codigo      String       @unique // EQ-0001, también el valor codificado en el QR físico
+  marca       String
+  modelo      String
+  anio        Int
+  numeroSerie String?
+  categoria   String
+  combustible Combustible
+  altura      Float?
+  horometro   Float        @default(0)
+  estado      EstadoEquipo @default(DISPONIBLE)
+
+  tarifa   TarifaEquipo? @relation(fields: [tarifaId], references: [id])
+  tarifaId String?
+
+  actualizadoPor   User?   @relation(fields: [actualizadoPorId], references: [id])
+  actualizadoPorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contratos Contrato[]
+
+  @@index([estado])
+  @@index([categoria])
 }

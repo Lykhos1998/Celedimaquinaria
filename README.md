@@ -21,8 +21,9 @@ oscuro y modo claro (toggle en el header).
 | Vigilancia | ✅ Construido (checador, QR de camiones, vales de salida, bitácora de incidentes) |
 | Marketing | ✅ Construido (dashboard con KPIs/funnel/pronóstico, captura de leads, gasto publicitario) |
 | Ventas | ✅ Construido (pipeline kanban, cierre de contratos, mi cartera, listado de contratos) |
+| Equipos / Flota | ✅ Construido (catálogo con estado/horómetro, tarifario, asignación de unidad al cerrar un contrato) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| Área de Daños, Taller, Finanzas, Logística, RH, Equipos/Flota, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
+| Área de Daños, Taller, Finanzas, Logística, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 | Compras | 🕓 Parcialmente definido (falta cerrar detalle de compras para RH/TI) |
 
 ## Arranque local
@@ -58,16 +59,18 @@ Contraseña para todos: `celedi2026`
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
 src/lib/roles.ts              Mapeo de módulos visibles por rol
 src/lib/comercial.ts          Constantes y helpers del módulo Comercial (etapas, folios, estado de contrato)
+src/lib/equipos.ts            Constantes y helpers del módulo Equipos/Flota (estados, folio)
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
 src/app/(app)/ventas/         Módulo Ventas (pipeline kanban, mi cartera, contratos)
+src/app/(app)/equipos/        Módulo Equipos/Flota (catálogo, tarifario)
 src/app/(app)/gerencia/       Vista global de Gerencia
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
@@ -85,14 +88,28 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
 - La comisión del asesor es una tasa fija de ejemplo (5% del valor mensual del contrato) —
   ajustar en `src/lib/comercial.ts#comisionEstimada` cuando se defina la regla real.
 
+### Notas sobre el módulo Equipos / Flota
+
+- El código de cada unidad (`EQ-XXXX`) es también el valor que codificaría su QR físico —
+  no hay un campo de QR separado, ya que es el mismo identificador.
+- El tarifario (`TarifaEquipo`) es independiente de las unidades físicas: varias unidades
+  con la misma marca/modelo/clasificación comparten una tarifa, que Ventas usa para
+  sugerir el valor mensual al cerrar un contrato.
+- El estado de una unidad (Disponible / Rentado / En Tránsito / En Mantenimiento / Fuera de
+  Servicio) es un campo manual. Hoy solo la transición a **Rentado** está automatizada
+  (se dispara al cerrar un contrato en Ventas asignándole una unidad); las transiciones a
+  En Tránsito y En Mantenimiento quedarán automatizadas cuando se construyan Logística y
+  Taller — mientras tanto, cualquier usuario con acceso al módulo puede cambiarlas a mano
+  desde el catálogo.
+
 ## Próximos pasos sugeridos
 
 Según la sección 7 de la especificación:
 
 1. Validar con Andrei los módulos marcados como pendientes en el documento.
 2. Cerrar el flujo de aprobación Compras–Taller (y compras para RH/Sistemas-TI).
-3. Priorizar el siguiente módulo a construir (Equipos/Flota es un buen candidato: alimenta
-   el tarifario que Ventas necesita para cotizar con precisión).
+3. Priorizar el siguiente módulo a construir — Taller o Logística son buenos candidatos:
+   ambos automatizarían transiciones de estado que hoy son manuales en Equipos/Flota.
 4. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
 5. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).
