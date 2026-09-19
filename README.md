@@ -10,9 +10,10 @@ oscuro y modo claro (toggle en el header).
 ## Stack
 
 - [Next.js](https://nextjs.org) (App Router) + TypeScript + Tailwind CSS
-- [Prisma ORM](https://www.prisma.io) — SQLite en desarrollo (cambiar `provider` en
-  `prisma/schema.prisma` a `postgresql` para producción)
+- [Prisma ORM](https://www.prisma.io) sobre PostgreSQL
 - [NextAuth v5](https://authjs.dev) (Credentials) para autenticación y sesiones por rol
+- [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) para la evidencia fotográfica
+  de Área de Daños (con fallback a disco local si no está configurado, ver abajo)
 
 ## Estado de los módulos
 
@@ -31,15 +32,22 @@ oscuro y modo claro (toggle en el header).
 
 ## Arranque local
 
+Necesitas una base PostgreSQL para desarrollo. La forma más rápida es una gratis en
+[Neon](https://neon.tech) o [Vercel Postgres](https://vercel.com/storage/postgres) (unos
+segundos, sin instalar nada); también sirve un Postgres local (`docker run -e
+POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16`).
+
 ```bash
 npm install
-cp .env.example .env        # genera un AUTH_SECRET propio: openssl rand -base64 32
-npx prisma migrate dev      # crea la base SQLite y aplica el esquema
+cp .env.example .env        # completa DATABASE_URL/DIRECT_URL y genera un AUTH_SECRET: openssl rand -base64 32
+npx prisma migrate dev      # aplica el esquema a tu base
 npm run db:seed             # crea usuarios demo, uno por rol
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Abre [http://localhost:3000](http://localhost:3000). Sin `BLOB_READ_WRITE_TOKEN` configurado,
+las fotos de Área de Daños se guardan en `public/uploads/` para que puedas probar todo sin
+depender de Vercel Blob localmente.
 
 ## Usuarios demo
 
@@ -59,6 +67,43 @@ Contraseña para todos: `celedi2026`
 | RH | rh@celedimaquinaria.com |
 | Sistemas / TI | ti@celedimaquinaria.com |
 
+## Desplegar en Vercel
+
+El proyecto ya está listo para desplegarse tal cual (Postgres + Vercel Blob, sin SQLite ni
+disco local en el camino de producción). Pasos en el dashboard de Vercel:
+
+1. **Importar el repositorio.** [vercel.com/new](https://vercel.com/new) → conecta la cuenta
+   de GitHub si hace falta → selecciona `lykhos1998/celedimaquinaria` → rama
+   `claude/new-session-ueky5w` (o la que quieras publicar) → Next.js se detecta solo, no hay
+   que tocar el build command.
+2. **Agregar una base Postgres.** Dentro del proyecto ya creado: pestaña **Storage** → **Create
+   Database** → Postgres (o conecta un Neon/Supabase desde el Marketplace si prefieres). Al
+   conectarlo, Vercel agrega automáticamente las variables de conexión al proyecto.
+3. **Mapear esas variables a `DATABASE_URL` y `DIRECT_URL`.** En **Settings → Environment
+   Variables**, agrega:
+   - `DATABASE_URL` = el valor de la cadena **pooled** que te dio el paso anterior (con
+     Vercel Postgres suele ser `POSTGRES_PRISMA_URL`; cópialo tal cual).
+   - `DIRECT_URL` = el valor de la cadena **directa/no-pooled** (`POSTGRES_URL_NON_POOLING`
+     con Vercel Postgres). Si tu proveedor solo te da una URL, usa la misma en ambas.
+4. **Agregar Vercel Blob.** Misma pestaña **Storage** → **Create Database** → Blob. Al
+   conectarlo agrega `BLOB_READ_WRITE_TOKEN` automáticamente — sin este paso, las fotos de
+   Área de Daños seguirían "funcionando" pero se perderían en cada deploy porque el disco de
+   una función serverless no persiste.
+5. **Agregar `AUTH_SECRET`.** En **Settings → Environment Variables**, agrega `AUTH_SECRET`
+   con un valor generado con `openssl rand -base64 32` (uno distinto al de tu `.env` local).
+6. **Deploy.** Cualquier push a la rama conectada dispara un deploy; el propio `npm run
+   build` corre `prisma migrate deploy` antes de `next build`, así que el esquema se aplica
+   solo en cada deploy — no hace falta correr migraciones a mano.
+7. **Sembrar usuarios demo (una sola vez).** La base de producción empieza vacía. Desde tu
+   máquina, con las variables de producción:
+   ```bash
+   vercel env pull .env.production.local   # trae DATABASE_URL/DIRECT_URL reales de Vercel
+   set -a && source .env.production.local && set +a
+   npm run db:seed
+   ```
+   Después de esto ya puedes entrar con los mismos usuarios demo de la tabla de arriba, pero
+   en la URL pública que te dio Vercel — compártela entre los dos dispositivos para la demo.
+
 ## Estructura
 
 ```
@@ -73,6 +118,7 @@ src/lib/taller.ts             Constantes y helpers del módulo Taller (estados, 
 src/lib/compras.ts            Constantes y helpers del módulo Compras (estados, áreas, folio de OC)
 src/lib/logistica.ts          Constantes, folio y el cruce con el QR de Vigilancia (procesarEscaneoQR)
 src/lib/danos.ts              Constantes y folio del módulo Área de Daños
+src/lib/storage.ts            Subida de archivos: Vercel Blob si hay token, si no disco local
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
@@ -83,7 +129,7 @@ src/app/(app)/compras/        Módulo Compras (órdenes de compra, proveedores)
 src/app/(app)/logistica/      Módulo Logística (traslados, flotilla)
 src/app/(app)/danos/          Módulo Área de Daños (inspecciones, daños con foto)
 src/app/(app)/gerencia/       Vista global de Gerencia
-public/uploads/danos/         Evidencia fotográfica subida (no versionada, ver nota abajo)
+public/uploads/danos/         Evidencia fotográfica en desarrollo local sin Vercel Blob (no versionada)
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
 ```
@@ -170,12 +216,12 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
   de renta que regresa; cada `Danio` encontrado lleva tipo, severidad, descripción, costo
   estimado y evidencia fotográfica opcional.
 - **Evidencia fotográfica real**: la foto se sube como archivo (server action que recibe
-  `FormData` con un `File`, valida tipo `image/*` y tamaño ≤ 5 MB) y se guarda en
-  `public/uploads/danos/` con un nombre aleatorio, sirviéndose como cualquier archivo
-  estático de Next.js. Esa carpeta está en `.gitignore` porque es contenido subido por
-  usuarios, no código fuente — **para producción, reemplazar el disco local por un
-  almacenamiento de objetos (S3 o equivalente)**, ya que el disco de un contenedor no es
-  persistente ni se comparte entre instancias.
+  `FormData` con un `File`, valida tipo `image/*` y tamaño ≤ 5 MB) — ver
+  `src/lib/storage.ts#guardarArchivo`. Si `BLOB_READ_WRITE_TOKEN` está configurado (Vercel
+  Blob conectado, ver "Desplegar en Vercel"), sube ahí y guarda la URL pública que regresa;
+  si no, cae en `public/uploads/danos/` con un nombre aleatorio, para poder probar el flujo
+  completo en desarrollo local sin depender de un servicio externo. Esa carpeta está en
+  `.gitignore` porque es contenido subido por usuarios, no código fuente.
 - Conexión hacia Taller: `src/app/(app)/taller/page.tsx` consulta los reportes que tienen
   al menos un daño y ninguna `OrdenServicio` ligada todavía, y el formulario de nueva orden
   los ofrece como cola — elegir uno fija la unidad, pone el tipo en Correctivo y prellena la
@@ -195,5 +241,6 @@ Según la sección 7 de la especificación:
    de Ventas y los montos de Compras/Contratos en cuentas por cobrar/pagar reales.
 3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
-4. Para producción: migrar `DATABASE_URL` a PostgreSQL, mover `public/uploads/` a un
-   almacenamiento de objetos, y desplegar (Vercel, Docker, etc.).
+4. El proyecto ya corre sobre PostgreSQL + Vercel Blob y está listo para desplegarse (ver
+   "Desplegar en Vercel" arriba); falta decidir con Andrei si esa es la plataforma
+   definitiva o si se autoalojará (Docker) en otro lado.

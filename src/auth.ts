@@ -20,6 +20,9 @@ type AppToken = { id: string; rol: Rol; nombre: string };
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Necesario en plataformas serverless (Vercel) donde el host llega vía
+  // proxy; sin esto NextAuth rechaza las peticiones por "untrusted host".
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {

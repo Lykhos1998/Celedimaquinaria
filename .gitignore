@@ -32,13 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
-# sqlite dev database
-/prisma/dev.db
-/prisma/dev.db-journal
-
-# user-uploaded files (evidencia fotográfica, etc.) — para producción, mover
-# a un almacenamiento de objetos (S3, etc.) en vez de disco local
+# user-uploaded files servidos en desarrollo local (sin Vercel Blob
+# configurado) — en producción con BLOB_READ_WRITE_TOKEN, esta carpeta ni
+# siquiera se usa
 /public/uploads/
 
 # vercel

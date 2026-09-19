@@ -1,14 +1,16 @@
 // Celedi Maquinaria — esquema de datos
-// Base de datos: SQLite para desarrollo local. Para producción, cambiar
-// `provider` a "postgresql" y `url` a la variable DATABASE_URL correspondiente.
+// PostgreSQL. `url` acepta una conexión con pooling (p. ej. pgbouncer);
+// `directUrl` debe ser una conexión directa, usada solo para migraciones.
+// Si el proveedor solo da una URL, usa el mismo valor en ambas variables.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Roles definidos en la especificación funcional (sección 5, "Roles y permisos").
