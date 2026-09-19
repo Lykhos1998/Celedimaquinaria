@@ -25,7 +25,7 @@ export const MODULOS: Record<
   compras: { label: "Compras", implementado: true },
   taller: { label: "Taller", implementado: true },
   finanzas: { label: "Finanzas", implementado: false },
-  logistica: { label: "Logística", implementado: false },
+  logistica: { label: "Logística", implementado: true },
   rh: { label: "RH", implementado: false },
   equipos: { label: "Equipos / Flota", implementado: true },
   "sistemas-ti": { label: "Sistemas / TI", implementado: false },

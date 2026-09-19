@@ -65,6 +65,8 @@ model User {
 
   ordenesCompraRegistradas OrdenCompra[] @relation("OrdenCompraRegistradaPor")
   ordenesCompraAprobadas   OrdenCompra[] @relation("OrdenCompraAprobadaPor")
+
+  trasladosProgramados Traslado[]
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -295,6 +297,7 @@ model Equipo {
 
   contratos       Contrato[]
   ordenesServicio OrdenServicio[]
+  traslados       Traslado[]
 
   @@index([estado])
   @@index([categoria])
@@ -419,4 +422,55 @@ model OrdenCompra {
 
   @@index([estado])
   @@index([area])
+}
+
+// --- Módulo Logística ------------------------------------------------------
+
+model Camion {
+  id        String   @id @default(cuid())
+  placa     String   @unique
+  modelo    String?
+  capacidad String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  traslados Traslado[]
+}
+
+enum TipoMovimiento {
+  ENTREGA
+  RECOLECCION
+}
+
+enum EstadoTraslado {
+  PROGRAMADO
+  EN_TRANSITO
+  ENTREGADO
+  CANCELADO
+}
+
+model Traslado {
+  id             String         @id @default(cuid())
+  folio          String         @unique // TR-0001
+  equipo         Equipo         @relation(fields: [equipoId], references: [id])
+  equipoId       String
+  camion         Camion         @relation(fields: [camionId], references: [id])
+  camionId       String
+  tipoMovimiento TipoMovimiento
+  origen         String
+  destino        String
+  estado         EstadoTraslado @default(PROGRAMADO)
+
+  fechaProgramada DateTime
+  fechaSalida     DateTime?
+  fechaEntrega    DateTime?
+
+  programadoPor   User   @relation(fields: [programadoPorId], references: [id])
+  programadoPorId String
+
+  createdAt DateTime @default(now())
+
+  @@index([estado])
+  @@index([equipoId])
+  @@index([camionId])
 }

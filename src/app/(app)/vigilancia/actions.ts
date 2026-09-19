@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAcceso } from "@/lib/access";
+import { procesarEscaneoQR } from "@/lib/logistica";
 import type { EstadoVale, SeveridadIncidente, TipoChecada, MovimientoQR } from "@prisma/client";
 
 async function vigilante() {
@@ -28,7 +29,10 @@ export async function registrarQR(data: {
   await prisma.qRVehiculo.create({
     data: { ...data, registradoPorId },
   });
+  await procesarEscaneoQR(data.placa, data.movimiento);
   revalidatePath("/vigilancia/qr");
+  revalidatePath("/logistica");
+  revalidatePath("/equipos");
 }
 
 async function siguienteFolioVale() {
