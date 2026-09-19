@@ -18,7 +18,7 @@ export default async function RefaccionesPage({
     }),
     prisma.solicitudRefaccion.findMany({
       where: orden ? { ordenServicioId: orden } : {},
-      include: { ordenServicio: true, solicitadoPor: true },
+      include: { ordenServicio: true, solicitadoPor: true, ordenCompra: true },
       orderBy: { createdAt: "desc" },
     }),
   ]);

@@ -3,8 +3,9 @@
 import { useTransition } from "react";
 import { marcarRefaccionRecibida } from "@/app/(app)/taller/actions";
 import { ESTADO_REFACCION_LABEL, ESTADO_REFACCION_STYLE } from "@/lib/taller";
+import { ESTADO_OC_LABEL, ESTADO_OC_STYLE } from "@/lib/compras";
 import { formatFechaHora } from "@/lib/format";
-import type { EstadoRefaccion } from "@prisma/client";
+import type { EstadoOrdenCompra, EstadoRefaccion } from "@prisma/client";
 
 export type RefaccionRow = {
   id: string;
@@ -14,6 +15,7 @@ export type RefaccionRow = {
   createdAt: Date;
   ordenServicio: { folio: string };
   solicitadoPor: { nombre: string };
+  ordenCompra: { folio: string; estado: EstadoOrdenCompra } | null;
 };
 
 export function RefaccionesTable({ refacciones }: { refacciones: RefaccionRow[] }) {
@@ -36,6 +38,7 @@ export function RefaccionesTable({ refacciones }: { refacciones: RefaccionRow[] 
               <th className="px-5 py-2 font-medium">Solicitado por</th>
               <th className="px-5 py-2 font-medium">Fecha</th>
               <th className="px-5 py-2 font-medium">Estado</th>
+              <th className="px-5 py-2 font-medium">Orden de compra</th>
               <th className="px-5 py-2 font-medium"></th>
             </tr>
           </thead>
@@ -52,8 +55,19 @@ export function RefaccionesTable({ refacciones }: { refacciones: RefaccionRow[] 
                     {ESTADO_REFACCION_LABEL[r.estado]}
                   </span>
                 </td>
+                <td className="px-5 py-2">
+                  {r.ordenCompra ? (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_OC_STYLE[r.ordenCompra.estado]}`}
+                    >
+                      {r.ordenCompra.folio} · {ESTADO_OC_LABEL[r.ordenCompra.estado]}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted">Sin cotizar</span>
+                  )}
+                </td>
                 <td className="px-5 py-2 text-right">
-                  {r.estado === "SOLICITADA" && (
+                  {r.estado === "SOLICITADA" && !r.ordenCompra && (
                     <button
                       disabled={pending}
                       onClick={() => startTransition(() => marcarRefaccionRecibida(r.id))}

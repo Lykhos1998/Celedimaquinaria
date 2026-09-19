@@ -23,9 +23,9 @@ oscuro y modo claro (toggle en el header).
 | Ventas | ✅ Construido (pipeline kanban, cierre de contratos, mi cartera, listado de contratos) |
 | Equipos / Flota | ✅ Construido (catálogo con estado/horómetro, tarifario, asignación de unidad al cerrar un contrato) |
 | Taller | ✅ Construido (órdenes de servicio, historial por unidad, solicitud de refacciones) |
+| Compras | ✅ Construido (proveedores, órdenes de compra, aprobación por Dirección, cierra el flujo con Taller) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
 | Área de Daños, Finanzas, Logística, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
-| Compras | 🕓 Parcialmente definido (falta cerrar detalle de compras para RH/TI) |
 
 ## Arranque local
 
@@ -60,7 +60,7 @@ Contraseña para todos: `celedi2026`
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
@@ -68,12 +68,14 @@ src/lib/roles.ts              Mapeo de módulos visibles por rol
 src/lib/comercial.ts          Constantes y helpers del módulo Comercial (etapas, folios, estado de contrato)
 src/lib/equipos.ts            Constantes y helpers del módulo Equipos/Flota (estados, folio)
 src/lib/taller.ts             Constantes y helpers del módulo Taller (estados, folio de orden)
+src/lib/compras.ts            Constantes y helpers del módulo Compras (estados, áreas, folio de OC)
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
 src/app/(app)/ventas/         Módulo Ventas (pipeline kanban, mi cartera, contratos)
 src/app/(app)/equipos/        Módulo Equipos/Flota (catálogo, tarifario)
 src/app/(app)/taller/         Módulo Taller (órdenes de servicio, refacciones)
+src/app/(app)/compras/        Módulo Compras (órdenes de compra, proveedores)
 src/app/(app)/gerencia/       Vista global de Gerencia
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
@@ -116,19 +118,34 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
 - El enlace "Ver historial" en el catálogo de Equipos/Flota filtra las órdenes de Taller por
   esa unidad (`/taller?equipoId=...`), implementando el "historial de mantenimiento por
   unidad ligado al catálogo" que pide la especificación.
-- `SolicitudRefaccion` modela solo el lado de Taller del flujo ("Taller solicita"). La
-  cotización de Compras y la aprobación de Dirección, que la especificación marca como
-  obligatoria antes de comprar, se agregarán cuando se construya el módulo de Compras.
+- `SolicitudRefaccion` modela el lado de Taller del flujo ("Taller solicita"); el módulo
+  Compras (ver abajo) agrega la cotización y la aprobación de Dirección.
+
+### Notas sobre el módulo Compras
+
+- Cierra el flujo descrito en la especificación (sección 3.5): Taller solicita una
+  refacción → Compras la cotiza registrando proveedor y monto en una `OrdenCompra` (folio
+  `OC-AAAA-XXXX`, estado inicial "Pendiente de aprobación") → **Dirección aprueba siempre,
+  sin importar el monto** → Compras marca la orden como recibida, lo que también cierra
+  automáticamente la `SolicitudRefaccion` de Taller que la originó
+  (`src/app/(app)/compras/actions.ts#marcarOrdenRecibida`).
+- "Dirección" se modela como el rol `GERENCIA`: aprobar/rechazar está restringido a ese rol
+  dentro de la propia acción del servidor (`src/app/(app)/compras/actions.ts#direccion`),
+  no solo oculto en la interfaz — un usuario de Compras no puede aprobar su propia cotización
+  aunque intente llamar la acción directamente.
+- También admite compras directas sin pasar por Taller (para RH, Sistemas/TI u "Otro"), ya
+  que el detalle de esas compras seguía como punto abierto en la especificación; se captura
+  con una descripción libre en lugar de una entidad dedicada, hasta que esos módulos existan
+  y se defina su flujo real.
 
 ## Próximos pasos sugeridos
 
 Según la sección 7 de la especificación:
 
-1. Validar con Andrei los módulos marcados como pendientes en el documento.
-2. Construir Compras para cerrar el flujo de aprobación Compras–Taller (cotizar y aprobar
-   las solicitudes de refacción que hoy solo capturan el lado de Taller).
-3. Logística es otro buen candidato: automatizaría la transición a En Tránsito, la última
-   que sigue siendo manual en Equipos/Flota.
-4. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
+1. Validar con Andrei los módulos marcados como pendientes en el documento, y el detalle de
+   compras para RH/Sistemas-TI que sigue como punto abierto.
+2. Logística es un buen candidato para el siguiente módulo: automatizaría la transición a
+   En Tránsito, la última que sigue siendo manual en Equipos/Flota.
+3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
-5. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).
+4. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).

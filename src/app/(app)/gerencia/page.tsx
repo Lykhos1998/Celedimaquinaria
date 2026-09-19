@@ -1,14 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { requireAcceso } from "@/lib/access";
 import { KpiCard } from "@/components/kpi-card";
-import { CheckCircle2, Clock, CircleDashed } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 
 const ESTADO_MODULOS = [
   { label: "Vigilancia", estado: "construido" as const },
   { label: "Marketing", estado: "construido" as const },
   { label: "Ventas", estado: "construido" as const },
   { label: "Área de Daños", estado: "definido" as const },
-  { label: "Compras", estado: "parcial" as const },
+  { label: "Compras", estado: "construido" as const },
   { label: "Taller", estado: "construido" as const },
   { label: "Finanzas", estado: "definido" as const },
   { label: "Logística", estado: "definido" as const },
@@ -20,7 +20,6 @@ const ESTADO_MODULOS = [
 const ESTADO_META = {
   construido: { label: "Construido", icon: CheckCircle2, cls: "text-emerald-500" },
   definido: { label: "Definido — pendiente de construir", icon: Clock, cls: "text-amber-500" },
-  parcial: { label: "Parcialmente definido", icon: CircleDashed, cls: "text-muted" },
 };
 
 export default async function GerenciaPage() {
@@ -39,6 +38,7 @@ export default async function GerenciaPage() {
     equiposDisponibles,
     equiposTotal,
     ordenesAbiertas,
+    comprasPendientes,
   ] = await Promise.all([
     prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
     prisma.qRVehiculo.count({
@@ -56,6 +56,7 @@ export default async function GerenciaPage() {
     prisma.ordenServicio.count({
       where: { estado: { in: ["ABIERTA", "EN_PROCESO", "ESPERANDO_REFACCION"] } },
     }),
+    prisma.ordenCompra.count({ where: { estado: "PENDIENTE_APROBACION" } }),
   ]);
 
   return (
@@ -69,6 +70,7 @@ export default async function GerenciaPage() {
         <KpiCard label="Contratos vigentes" value={contratosActivos} hint="Comercial" />
         <KpiCard label="Unidades disponibles" value={`${equiposDisponibles} / ${equiposTotal}`} hint="Equipos / Flota" />
         <KpiCard label="Órdenes abiertas en Taller" value={ordenesAbiertas} hint="Taller" />
+        <KpiCard label="Compras por aprobar" value={comprasPendientes} hint="Esperando a Dirección" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">

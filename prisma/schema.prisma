@@ -62,6 +62,9 @@ model User {
 
   ordenesCreadas         OrdenServicio[]
   refaccionesSolicitadas SolicitudRefaccion[]
+
+  ordenesCompraRegistradas OrdenCompra[] @relation("OrdenCompraRegistradaPor")
+  ordenesCompraAprobadas   OrdenCompra[] @relation("OrdenCompraAprobadaPor")
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -355,4 +358,65 @@ model SolicitudRefaccion {
   solicitadoPorId String
 
   createdAt DateTime @default(now())
+
+  ordenCompra OrdenCompra?
+}
+
+// --- Módulo Compras -------------------------------------------------------
+
+model Proveedor {
+  id        String   @id @default(cuid())
+  nombre    String
+  contacto  String?
+  telefono  String?
+  email     String?
+  categoria String?
+  createdAt DateTime @default(now())
+
+  ordenesCompra OrdenCompra[]
+}
+
+enum EstadoOrdenCompra {
+  PENDIENTE_APROBACION
+  APROBADA
+  RECHAZADA
+  RECIBIDA
+}
+
+// Área que origina la compra. TALLER normalmente viene ligada a una
+// SolicitudRefaccion; RH y SISTEMAS_TI son compras directas cuyo detalle
+// aún no se define (ver especificación, sección 3.5, "punto abierto").
+enum AreaSolicitante {
+  TALLER
+  RH
+  SISTEMAS_TI
+  OTRO
+}
+
+model OrdenCompra {
+  id          String            @id @default(cuid())
+  folio       String            @unique // OC-AAAA-XXXX
+  proveedor   Proveedor         @relation(fields: [proveedorId], references: [id])
+  proveedorId String
+  descripcion String
+  monto       Float
+  area        AreaSolicitante
+  estado      EstadoOrdenCompra @default(PENDIENTE_APROBACION)
+
+  // Solicitud de refacción de Taller que originó esta compra, si aplica.
+  refaccion   SolicitudRefaccion? @relation(fields: [refaccionId], references: [id])
+  refaccionId String?             @unique
+
+  registradoPor   User   @relation("OrdenCompraRegistradaPor", fields: [registradoPorId], references: [id])
+  registradoPorId String
+
+  // Dirección aprueba siempre, sin importar el monto (ver especificación).
+  aprobadoPor     User?     @relation("OrdenCompraAprobadaPor", fields: [aprobadoPorId], references: [id])
+  aprobadoPorId   String?
+  fechaAprobacion DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([estado])
+  @@index([area])
 }
