@@ -23,7 +23,7 @@ export const MODULOS: Record<
   ventas: { label: "Ventas", implementado: true },
   danos: { label: "Área de Daños", implementado: false },
   compras: { label: "Compras", implementado: false },
-  taller: { label: "Taller", implementado: false },
+  taller: { label: "Taller", implementado: true },
   finanzas: { label: "Finanzas", implementado: false },
   logistica: { label: "Logística", implementado: false },
   rh: { label: "RH", implementado: false },

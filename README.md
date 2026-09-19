@@ -22,8 +22,9 @@ oscuro y modo claro (toggle en el header).
 | Marketing | ✅ Construido (dashboard con KPIs/funnel/pronóstico, captura de leads, gasto publicitario) |
 | Ventas | ✅ Construido (pipeline kanban, cierre de contratos, mi cartera, listado de contratos) |
 | Equipos / Flota | ✅ Construido (catálogo con estado/horómetro, tarifario, asignación de unidad al cerrar un contrato) |
+| Taller | ✅ Construido (órdenes de servicio, historial por unidad, solicitud de refacciones) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| Área de Daños, Taller, Finanzas, Logística, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
+| Área de Daños, Finanzas, Logística, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 | Compras | 🕓 Parcialmente definido (falta cerrar detalle de compras para RH/TI) |
 
 ## Arranque local
@@ -59,18 +60,20 @@ Contraseña para todos: `celedi2026`
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
 src/lib/roles.ts              Mapeo de módulos visibles por rol
 src/lib/comercial.ts          Constantes y helpers del módulo Comercial (etapas, folios, estado de contrato)
 src/lib/equipos.ts            Constantes y helpers del módulo Equipos/Flota (estados, folio)
+src/lib/taller.ts             Constantes y helpers del módulo Taller (estados, folio de orden)
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
 src/app/(app)/ventas/         Módulo Ventas (pipeline kanban, mi cartera, contratos)
 src/app/(app)/equipos/        Módulo Equipos/Flota (catálogo, tarifario)
+src/app/(app)/taller/         Módulo Taller (órdenes de servicio, refacciones)
 src/app/(app)/gerencia/       Vista global de Gerencia
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
 docs/especificacion-funcional.pdf   Documento fuente de la especificación
@@ -96,20 +99,36 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
   con la misma marca/modelo/clasificación comparten una tarifa, que Ventas usa para
   sugerir el valor mensual al cerrar un contrato.
 - El estado de una unidad (Disponible / Rentado / En Tránsito / En Mantenimiento / Fuera de
-  Servicio) es un campo manual. Hoy solo la transición a **Rentado** está automatizada
-  (se dispara al cerrar un contrato en Ventas asignándole una unidad); las transiciones a
-  En Tránsito y En Mantenimiento quedarán automatizadas cuando se construyan Logística y
-  Taller — mientras tanto, cualquier usuario con acceso al módulo puede cambiarlas a mano
-  desde el catálogo.
+  Servicio) es un campo manual salvo dos transiciones ya automatizadas: **Rentado** al
+  cerrar un contrato en Ventas asignándole una unidad, y **En Mantenimiento** al abrir una
+  orden de servicio en Taller (ver abajo). La transición a En Tránsito quedará automatizada
+  cuando se construya Logística; mientras tanto se cambia a mano desde el catálogo.
+
+### Notas sobre el módulo Taller
+
+- Abrir una orden de servicio (`OrdenServicio`, folio `OS-XXXX`) pone automáticamente la
+  unidad en **En Mantenimiento**; completarla o cancelarla la regresa a **Disponible**,
+  pero solo si no quedan otras órdenes abiertas para esa misma unidad (`src/app/(app)/
+  taller/actions.ts#actualizarEstadoOrden`) — así dos órdenes simultáneas sobre la misma
+  máquina no se pisan entre sí.
+- El "tiempo de reparación" se calcula como días entre `fechaInicio` y `fechaFin` (o "en
+  curso" si la orden sigue abierta), no es un campo guardado aparte.
+- El enlace "Ver historial" en el catálogo de Equipos/Flota filtra las órdenes de Taller por
+  esa unidad (`/taller?equipoId=...`), implementando el "historial de mantenimiento por
+  unidad ligado al catálogo" que pide la especificación.
+- `SolicitudRefaccion` modela solo el lado de Taller del flujo ("Taller solicita"). La
+  cotización de Compras y la aprobación de Dirección, que la especificación marca como
+  obligatoria antes de comprar, se agregarán cuando se construya el módulo de Compras.
 
 ## Próximos pasos sugeridos
 
 Según la sección 7 de la especificación:
 
 1. Validar con Andrei los módulos marcados como pendientes en el documento.
-2. Cerrar el flujo de aprobación Compras–Taller (y compras para RH/Sistemas-TI).
-3. Priorizar el siguiente módulo a construir — Taller o Logística son buenos candidatos:
-   ambos automatizarían transiciones de estado que hoy son manuales en Equipos/Flota.
+2. Construir Compras para cerrar el flujo de aprobación Compras–Taller (cotizar y aprobar
+   las solicitudes de refacción que hoy solo capturan el lado de Taller).
+3. Logística es otro buen candidato: automatizaría la transición a En Tránsito, la última
+   que sigue siendo manual en Equipos/Flota.
 4. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
 5. Para producción: migrar `DATABASE_URL` a PostgreSQL y desplegar (Vercel, Docker, etc.).

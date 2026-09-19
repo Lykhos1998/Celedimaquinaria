@@ -59,6 +59,9 @@ model User {
   contratos Contrato[]
 
   equiposActualizados Equipo[]
+
+  ordenesCreadas         OrdenServicio[]
+  refaccionesSolicitadas SolicitudRefaccion[]
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -287,8 +290,69 @@ model Equipo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contratos Contrato[]
+  contratos       Contrato[]
+  ordenesServicio OrdenServicio[]
 
   @@index([estado])
   @@index([categoria])
+}
+
+// --- Módulo Taller -------------------------------------------------------
+
+enum TipoServicio {
+  PREVENTIVO
+  CORRECTIVO
+}
+
+enum EstadoOrdenServicio {
+  ABIERTA
+  EN_PROCESO
+  ESPERANDO_REFACCION
+  COMPLETADA
+  CANCELADA
+}
+
+model OrdenServicio {
+  id          String              @id @default(cuid())
+  folio       String              @unique // OS-0001
+  equipo      Equipo              @relation(fields: [equipoId], references: [id])
+  equipoId    String
+  tipo        TipoServicio
+  descripcion String
+  estado      EstadoOrdenServicio @default(ABIERTA)
+
+  creadoPor   User   @relation(fields: [creadoPorId], references: [id])
+  creadoPorId String
+
+  fechaInicio DateTime  @default(now())
+  fechaFin    DateTime?
+  createdAt   DateTime  @default(now())
+
+  refacciones SolicitudRefaccion[]
+
+  @@index([equipoId])
+  @@index([estado])
+}
+
+enum EstadoRefaccion {
+  SOLICITADA
+  RECIBIDA
+  CANCELADA
+}
+
+// Modela únicamente el lado de Taller del flujo ("Taller solicita"); la
+// cotización de Compras y la aprobación de Dirección se agregarán cuando
+// se construya el módulo de Compras.
+model SolicitudRefaccion {
+  id              String          @id @default(cuid())
+  ordenServicio   OrdenServicio   @relation(fields: [ordenServicioId], references: [id])
+  ordenServicioId String
+  descripcion     String
+  cantidad        Int             @default(1)
+  estado          EstadoRefaccion @default(SOLICITADA)
+
+  solicitadoPor   User   @relation(fields: [solicitadoPorId], references: [id])
+  solicitadoPorId String
+
+  createdAt DateTime @default(now())
 }

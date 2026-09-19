@@ -9,7 +9,7 @@ const ESTADO_MODULOS = [
   { label: "Ventas", estado: "construido" as const },
   { label: "Área de Daños", estado: "definido" as const },
   { label: "Compras", estado: "parcial" as const },
-  { label: "Taller", estado: "definido" as const },
+  { label: "Taller", estado: "construido" as const },
   { label: "Finanzas", estado: "definido" as const },
   { label: "Logística", estado: "definido" as const },
   { label: "RH", estado: "definido" as const },
@@ -38,6 +38,7 @@ export default async function GerenciaPage() {
     contratosActivos,
     equiposDisponibles,
     equiposTotal,
+    ordenesAbiertas,
   ] = await Promise.all([
     prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
     prisma.qRVehiculo.count({
@@ -52,6 +53,9 @@ export default async function GerenciaPage() {
     prisma.contrato.count({ where: { cancelado: false, fechaFin: { gte: inicioDelDia } } }),
     prisma.equipo.count({ where: { estado: "DISPONIBLE" } }),
     prisma.equipo.count(),
+    prisma.ordenServicio.count({
+      where: { estado: { in: ["ABIERTA", "EN_PROCESO", "ESPERANDO_REFACCION"] } },
+    }),
   ]);
 
   return (
@@ -64,6 +68,7 @@ export default async function GerenciaPage() {
         <KpiCard label="Leads en pipeline" value={leadsActivos} hint="Comercial" />
         <KpiCard label="Contratos vigentes" value={contratosActivos} hint="Comercial" />
         <KpiCard label="Unidades disponibles" value={`${equiposDisponibles} / ${equiposTotal}`} hint="Equipos / Flota" />
+        <KpiCard label="Órdenes abiertas en Taller" value={ordenesAbiertas} hint="Taller" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { cambiarEstadoEquipo } from "@/app/(app)/equipos/actions";
 import { COMBUSTIBLE_LABEL, ESTADO_EQUIPO_LABEL, ESTADO_EQUIPO_STYLE } from "@/lib/equipos";
 import type { Combustible, EstadoEquipo } from "@prisma/client";
@@ -46,6 +47,7 @@ export function EquiposTable({ equipos }: { equipos: EquipoRow[] }) {
                 <th className="px-5 py-2 font-medium">Horómetro</th>
                 <th className="px-5 py-2 font-medium">Tarifa</th>
                 <th className="px-5 py-2 font-medium">Estado</th>
+                <th className="px-5 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -76,6 +78,14 @@ export function EquiposTable({ equipos }: { equipos: EquipoRow[] }) {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-5 py-2 text-right">
+                    <Link
+                      href={`/taller?equipoId=${e.id}`}
+                      className="text-xs text-muted underline hover:text-foreground"
+                    >
+                      Ver historial
+                    </Link>
                   </td>
                 </tr>
               ))}
