@@ -1,0 +1,129 @@
+// Celedi Maquinaria — esquema de datos
+// Base de datos: SQLite para desarrollo local. Para producción, cambiar
+// `provider` a "postgresql" y `url` a la variable DATABASE_URL correspondiente.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Roles definidos en la especificación funcional (sección 5, "Roles y permisos").
+// GERENCIA tiene alcance global sobre todos los módulos.
+enum Rol {
+  VIGILANTE
+  MARKETING
+  ASESOR_VENTAS
+  INSPECTOR_DANOS
+  COMPRAS
+  TALLER
+  FINANZAS
+  LOGISTICA
+  RH
+  SISTEMAS_TI
+  GERENCIA
+}
+
+model User {
+  id           String   @id @default(cuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  rol          Rol
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  // Vigilancia — registros donde este usuario es el colaborador checado
+  asistencias           AsistenciaRegistro[] @relation("Colaborador")
+  // Vigilancia — registros que este usuario (vigilante) capturó
+  asistenciasRegistradas AsistenciaRegistro[] @relation("RegistradoPor")
+
+  qrVehiculosRegistrados QRVehiculo[]
+
+  valesComoSolicitante ValeSalida[] @relation("Solicitante")
+  valesAutorizados     ValeSalida[] @relation("AutorizadoPor")
+  valesValidados       ValeSalida[] @relation("ValidadoPor")
+
+  incidentesRegistrados IncidenteSeguridad[]
+}
+
+// --- Módulo Vigilancia --------------------------------------------------
+
+enum TipoChecada {
+  ENTRADA
+  SALIDA
+  ENTRADA_COMIDA
+  SALIDA_COMIDA
+}
+
+model AsistenciaRegistro {
+  id             String      @id @default(cuid())
+  colaborador    User        @relation("Colaborador", fields: [colaboradorId], references: [id])
+  colaboradorId  String
+  tipo           TipoChecada
+  timestamp      DateTime    @default(now())
+  registradoPor  User        @relation("RegistradoPor", fields: [registradoPorId], references: [id])
+  registradoPorId String
+
+  @@index([colaboradorId])
+}
+
+enum MovimientoQR {
+  SALIDA
+  LLEGADA
+}
+
+model QRVehiculo {
+  id              String       @id @default(cuid())
+  placa           String
+  codigoQR        String
+  movimiento      MovimientoQR
+  destino         String?
+  timestamp       DateTime     @default(now())
+  registradoPor   User         @relation(fields: [registradoPorId], references: [id])
+  registradoPorId String
+
+  @@index([placa])
+}
+
+enum EstadoVale {
+  SOLICITADO
+  AUTORIZADO
+  EN_SALIDA
+  RETORNADO
+  VENCIDO
+}
+
+model ValeSalida {
+  id              String     @id @default(cuid())
+  folio           String     @unique
+  activo          String
+  solicitante     User       @relation("Solicitante", fields: [solicitanteId], references: [id])
+  solicitanteId   String
+  autorizadoPor   User?      @relation("AutorizadoPor", fields: [autorizadoPorId], references: [id])
+  autorizadoPorId String?
+  validadoPor     User?      @relation("ValidadoPor", fields: [validadoPorId], references: [id])
+  validadoPorId   String?
+  estado          EstadoVale @default(SOLICITADO)
+  fechaSalida     DateTime?
+  fechaRetorno    DateTime?
+  createdAt       DateTime   @default(now())
+}
+
+enum SeveridadIncidente {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+model IncidenteSeguridad {
+  id              String             @id @default(cuid())
+  descripcion     String
+  severidad       SeveridadIncidente @default(BAJA)
+  timestamp       DateTime           @default(now())
+  registradoPor   User               @relation(fields: [registradoPorId], references: [id])
+  registradoPorId String
+}

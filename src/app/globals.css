@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f4f5f8;
+  --surface: #ffffff;
+  --surface-muted: #eceef2;
+  --foreground: #14151a;
+  --muted: #5b5f6b;
+  --border: #dfe1e8;
+  --brand: #7c1836;
+  --brand-foreground: #ffffff;
+  --sidebar: #1a1621;
+  --sidebar-foreground: #e7e4ec;
+  --sidebar-muted: #9b93a8;
+  --sidebar-active: #7c1836;
+}
+
+.dark {
+  --background: #0d0e12;
+  --surface: #16171d;
+  --surface-muted: #1e2028;
+  --foreground: #edeef2;
+  --muted: #9a9ca6;
+  --border: #2a2c36;
+  --brand: #b23458;
+  --brand-foreground: #ffffff;
+  --sidebar: #0c0a10;
+  --sidebar-foreground: #e7e4ec;
+  --sidebar-muted: #8b8398;
+  --sidebar-active: #b23458;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
