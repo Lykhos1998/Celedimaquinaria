@@ -14,6 +14,7 @@ export type ValeRow = {
   fechaRetorno: Date | null;
   createdAt: Date;
   solicitante: { nombre: string };
+  dispositivoId: string | null;
 };
 
 const ESTADO_LABEL: Record<EstadoVale, string> = {
@@ -63,7 +64,12 @@ export function ValesTable({ vales }: { vales: ValeRow[] }) {
           </thead>
           <tbody>
             {vales.map((v) => {
-              const siguiente = SIGUIENTE_ESTADO[v.estado];
+              // Un vale de equipo de cómputo (Sistemas/TI) necesita su
+              // autorización antes de que Vigilancia pueda validarlo en la
+              // puerta — Vigilancia solo hace ese primer paso en sus propios
+              // vales genéricos.
+              const esperandoTI = v.estado === "SOLICITADO" && !!v.dispositivoId;
+              const siguiente = esperandoTI ? undefined : SIGUIENTE_ESTADO[v.estado];
               return (
                 <tr key={v.id} className="border-t border-border">
                   <td className="px-5 py-2 font-mono text-xs text-foreground">{v.folio}</td>
@@ -81,6 +87,7 @@ export function ValesTable({ vales }: { vales: ValeRow[] }) {
                     {v.fechaRetorno ? formatFechaHora(v.fechaRetorno) : "—"}
                   </td>
                   <td className="px-5 py-2 text-right">
+                    {esperandoTI && <span className="text-xs text-muted">Esperando a Sistemas/TI</span>}
                     {siguiente && (
                       <button
                         disabled={pending}

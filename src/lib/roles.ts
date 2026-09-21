@@ -26,9 +26,9 @@ export const MODULOS: Record<
   taller: { label: "Taller", implementado: true },
   finanzas: { label: "Finanzas", implementado: true },
   logistica: { label: "Logística", implementado: true },
-  rh: { label: "RH", implementado: false },
+  rh: { label: "RH", implementado: true },
   equipos: { label: "Equipos / Flota", implementado: true },
-  "sistemas-ti": { label: "Sistemas / TI", implementado: false },
+  "sistemas-ti": { label: "Sistemas / TI", implementado: true },
   gerencia: { label: "Gerencia", implementado: true },
 };
 

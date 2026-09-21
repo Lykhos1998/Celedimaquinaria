@@ -28,8 +28,9 @@ oscuro y modo claro (toggle en el header).
 | Logística | ✅ Construido (flotilla, traslados, cruce automático con el QR de Vigilancia) |
 | Área de Daños | ✅ Construido (reportes de inspección, daños con evidencia fotográfica, cierra el ciclo con Taller y Ventas) |
 | Finanzas | ✅ Construido (cuentas por cobrar de renta y daños, cuentas por pagar de Compras) |
+| RH | ✅ Construido (expediente/altas y bajas, permisos y vacaciones, nómina desde asistencia) |
+| Sistemas / TI | ✅ Construido (tickets de soporte, catálogo de dispositivos, vales de salida ligados a Vigilancia) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 
 ## Arranque local
 
@@ -108,7 +109,7 @@ disco local en el camino de producción). Pasos en el dashboard de Vercel:
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística, Área de Daños, Finanzas)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística, Área de Daños, Finanzas, RH, Sistemas/TI)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
@@ -120,6 +121,8 @@ src/lib/compras.ts            Constantes y helpers del módulo Compras (estados,
 src/lib/logistica.ts          Constantes, folio y el cruce con el QR de Vigilancia (procesarEscaneoQR)
 src/lib/danos.ts              Constantes y folio del módulo Área de Daños
 src/lib/finanzas.ts           Constantes, folio y estado derivado (Pendiente/Vencida/Cobrada) de Finanzas
+src/lib/rh.ts                  Constantes, folios y cálculo de días asistidos (a partir de Vigilancia) de RH
+src/lib/sistemas-ti.ts         Constantes y folios del módulo Sistemas/TI
 src/lib/storage.ts            Subida de archivos: Vercel Blob si hay token, si no disco local
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
@@ -131,6 +134,8 @@ src/app/(app)/compras/        Módulo Compras (órdenes de compra, proveedores)
 src/app/(app)/logistica/      Módulo Logística (traslados, flotilla)
 src/app/(app)/danos/          Módulo Área de Daños (inspecciones, daños con foto)
 src/app/(app)/finanzas/       Módulo Finanzas (cuentas por cobrar, cuentas por pagar)
+src/app/(app)/rh/             Módulo RH (colaboradores, permisos y vacaciones, nómina)
+src/app/(app)/sistemas-ti/    Módulo Sistemas/TI (tickets, dispositivos, vales de salida)
 src/app/(app)/gerencia/       Vista global de Gerencia
 public/uploads/danos/         Evidencia fotográfica en desarrollo local sin Vercel Blob (no versionada)
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
@@ -254,14 +259,56 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
 - Dashboard de Gerencia: agrega dos KPIs (Por cobrar pendiente / Por pagar pendiente) que
   suman directamente sobre estas mismas tablas.
 
+### Notas sobre el módulo RH
+
+- Alcance según la especificación (sección 3.9, confirmado por Andrei como el estándar "de
+  cajón", sin funcionalidad especial adicional): asistencia (vía Vigilancia), permisos y
+  vacaciones, nómina con base en esa asistencia, y expediente de colaborador.
+- **Colaboradores** (`/rh`): alta/baja directamente sobre el modelo `User` — el "expediente"
+  aquí es alta (nombre, correo, rol, contraseña inicial) y baja (`activo` en false, que ya
+  bloquea el login vía NextAuth); no incluye documentación adjunta por colaborador, fuera del
+  alcance estándar confirmado.
+- **Permisos y Vacaciones** (`/rh/permisos`): modelo nuevo `Permiso` (folio `PER-XXXX`) con
+  tipo (Vacaciones/Permiso/Incapacidad/Otro) y aprobación de RH.
+- **Nómina** (`/rh/nomina`): modelo nuevo `Nomina` (folio `NOM-AAAA-XXXX`). Los días asistidos
+  **no se capturan a mano** — se cuentan a partir de las checadas de ENTRADA que Vigilancia ya
+  registró en el periodo (`src/lib/rh.ts#diasAsistidos`), que es exactamente la conexión que
+  pide la especificación ("RH usa esos datos para asistencia y nómina"). El sueldo del periodo
+  sí se captura manualmente al generar cada recibo.
+
+### Notas sobre el módulo Sistemas / TI
+
+- Alcance según la especificación (sección 3.11): soporte técnico + control de activos de
+  cómputo, conectado con Vigilancia para la salida física de esos activos.
+- **Tickets de Soporte** (`/sistemas-ti`): modelo nuevo `TicketSoporte` (folio `TK-XXXX`) con
+  categoría, prioridad y estado Abierto/Resuelto.
+- **Mis Dispositivos** (`/sistemas-ti/dispositivos`): modelo nuevo `Dispositivo` (código
+  `DI-AAAA-XXX`) — catálogo de equipo de cómputo con asignación a un colaborador. La
+  especificación lo describe como una vista de autoservicio por colaborador; aquí Sistemas/TI
+  lo administra de forma centralizada (como ya hace Equipos/Flota con la maquinaria) porque
+  todavía no existe un portal de autoservicio en los demás módulos — ver "Próximos pasos".
+- **Vales de Salida** (`/sistemas-ti/vales`): reutiliza el modelo `ValeSalida` que ya existía
+  en Vigilancia (nunca hizo falta uno nuevo), solo le agrega un vínculo opcional a
+  `Dispositivo`. Implementa el flujo de 3 pasos exacto de la especificación: (1) aquí se
+  registra la solicitud a nombre del colaborador dueño del equipo, (2) Sistemas/TI la autoriza
+  con un botón dedicado — a diferencia de los vales genéricos que crea Vigilancia, estos NO se
+  autorizan solos al crearse — y (3) Vigilancia, en su propia pantalla de vales
+  (`/vigilancia/vales`, sin tocar su lógica de captura), ve el vale ya autorizado y hace la
+  validación física en la puerta; mientras no esté autorizado, ahí se muestra como "Esperando
+  a Sistemas/TI" en vez del botón de autorizar.
+
 ## Próximos pasos sugeridos
 
-Según la sección 7 de la especificación:
+Los 11 módulos de la especificación funcional (versión inicial, 8 de julio de 2026) están
+construidos. Lo que sigue, según la sección 7 y lo que quedó anotado como simplificación en
+cada módulo nuevo:
 
-1. Validar con Andrei los módulos marcados como pendientes en el documento, y el detalle de
-   compras para RH/Sistemas-TI que sigue como punto abierto.
-2. RH y Sistemas/TI son los dos módulos que faltan por construir — ninguno tiene alcance
-   definido todavía más allá del login y las compras que ya pasan por Compras.
+1. Portal de autoservicio por rol: hoy Compras/RH/Sistemas-TI son quienes capturan en nombre
+   de otros (solicitudes de compra directa, altas de colaborador, tickets y vales de TI). Si
+   se quiere que cada colaborador reporte lo suyo directamente desde su propio módulo, es el
+   cambio transversal más grande pendiente.
+2. Detalle de compras para RH y Sistemas-TI (qué se compra, con qué frecuencia) — sigue siendo
+   un punto abierto en la especificación, independiente de que Compras ya soporta esas áreas.
 3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
 4. El proyecto ya corre sobre PostgreSQL + Vercel Blob y está listo para desplegarse (ver

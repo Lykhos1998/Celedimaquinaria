@@ -76,6 +76,21 @@ model User {
 
   cuentasCobrarRegistradas CuentaCobrar[] @relation("CuentaCobrarRegistradaPor")
   cuentasCobrarCobradas    CuentaCobrar[] @relation("CuentaCobrarCobradaPor")
+
+  // RH — expediente propio (como colaborador) y acciones que este usuario
+  // (rol RH) realizó sobre expedientes de otros
+  permisos             Permiso[] @relation("PermisoColaborador")
+  permisosRegistrados  Permiso[] @relation("PermisoRegistradoPor")
+  permisosResueltos    Permiso[] @relation("PermisoResueltoPor")
+  nominas              Nomina[]  @relation("NominaColaborador")
+  nominasGeneradas     Nomina[]  @relation("NominaGeneradoPor")
+  nominasPagadas       Nomina[]  @relation("NominaPagadaPor")
+
+  // Sistemas / TI
+  ticketsReportados  TicketSoporte[] @relation("TicketReportadoPor")
+  ticketsResueltos   TicketSoporte[] @relation("TicketResueltoPor")
+  dispositivosAsignados Dispositivo[] @relation("DispositivoColaborador")
+  dispositivosDadosDeAlta Dispositivo[] @relation("DispositivoAsignadoPor")
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -139,6 +154,12 @@ model ValeSalida {
   fechaSalida     DateTime?
   fechaRetorno    DateTime?
   createdAt       DateTime   @default(now())
+
+  // Si el vale sale de Sistemas/TI (equipo de cómputo), queda ligado al
+  // activo de su catálogo; Vigilancia sigue siendo quien valida la salida
+  // física sin importar el origen del vale.
+  dispositivo   Dispositivo? @relation(fields: [dispositivoId], references: [id])
+  dispositivoId String?
 }
 
 enum SeveridadIncidente {
@@ -593,4 +614,145 @@ model CuentaCobrar {
 
   @@index([contratoId])
   @@index([cobrada])
+}
+
+// --- Módulo RH ---------------------------------------------------------
+// Alcance confirmado como estándar en la especificación (sección 3.9): recibe
+// asistencia de Vigilancia, gestiona permisos/vacaciones, nómina con base en
+// esa asistencia, y expediente de colaborador (altas/bajas — el "expediente"
+// documental completo queda fuera de este alcance estándar).
+
+enum TipoPermiso {
+  VACACIONES
+  PERMISO
+  INCAPACIDAD
+  OTRO
+}
+
+enum EstadoPermiso {
+  SOLICITADO
+  APROBADO
+  RECHAZADO
+}
+
+model Permiso {
+  id          String        @id @default(cuid())
+  folio       String        @unique // PER-0001
+  colaborador User          @relation("PermisoColaborador", fields: [colaboradorId], references: [id])
+  colaboradorId String
+  tipo        TipoPermiso
+  fechaInicio DateTime
+  fechaFin    DateTime
+  motivo      String?
+  estado      EstadoPermiso @default(SOLICITADO)
+
+  registradoPor   User    @relation("PermisoRegistradoPor", fields: [registradoPorId], references: [id])
+  registradoPorId String
+  resueltoPor     User?   @relation("PermisoResueltoPor", fields: [resueltoPorId], references: [id])
+  resueltoPorId   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([colaboradorId])
+  @@index([estado])
+}
+
+// Los días asistidos se calculan a partir de AsistenciaRegistro (checadas de
+// ENTRADA en el periodo), no se capturan a mano — así siempre refleja lo que
+// Vigilancia realmente registró.
+model Nomina {
+  id            String   @id @default(cuid())
+  folio         String   @unique // NOM-AAAA-XXXX
+  colaborador   User     @relation("NominaColaborador", fields: [colaboradorId], references: [id])
+  colaboradorId String
+  periodoInicio DateTime
+  periodoFin    DateTime
+  diasAsistidos Int
+  sueldoPeriodo Float
+  pagada        Boolean  @default(false)
+  fechaPago     DateTime?
+
+  generadoPor   User    @relation("NominaGeneradoPor", fields: [generadoPorId], references: [id])
+  generadoPorId String
+  pagadoPor     User?   @relation("NominaPagadaPor", fields: [pagadoPorId], references: [id])
+  pagadoPorId   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([colaboradorId])
+}
+
+// --- Módulo Sistemas / TI ------------------------------------------------
+// Especificación, sección 3.11: soporte técnico + control de activos de
+// cómputo, conectado con Vigilancia para la salida física de esos activos.
+
+enum CategoriaTicket {
+  HARDWARE
+  SOFTWARE
+  RED
+  OTRO
+}
+
+enum PrioridadTicket {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+enum EstadoTicket {
+  ABIERTO
+  RESUELTO
+}
+
+model TicketSoporte {
+  id        String          @id @default(cuid())
+  folio     String          @unique // TK-0001
+  titulo    String
+  categoria CategoriaTicket
+  prioridad PrioridadTicket @default(MEDIA)
+  estado    EstadoTicket    @default(ABIERTO)
+
+  reportadoPor   User    @relation("TicketReportadoPor", fields: [reportadoPorId], references: [id])
+  reportadoPorId String
+  resueltoPor    User?   @relation("TicketResueltoPor", fields: [resueltoPorId], references: [id])
+  resueltoPorId  String?
+
+  createdAt  DateTime  @default(now())
+  resueltoAt DateTime?
+
+  @@index([estado])
+}
+
+enum TipoDispositivo {
+  LAPTOP
+  DESKTOP
+  MONITOR
+  CELULAR
+  OTRO
+}
+
+// "Mis Dispositivos" de la especificación: aquí Sistemas/TI da de alta y
+// asigna el equipo; no hay todavía una vista de autoservicio por colaborador
+// en cada módulo (ver notas del README).
+model Dispositivo {
+  id          String          @id @default(cuid())
+  codigo      String          @unique // DI-AAAA-XXX
+  tipo        TipoDispositivo
+  marca       String
+  modelo      String
+  numeroSerie String?
+  activo      Boolean         @default(true)
+
+  colaborador     User?     @relation("DispositivoColaborador", fields: [colaboradorId], references: [id])
+  colaboradorId   String?
+  fechaAsignacion DateTime?
+
+  asignadoPor   User   @relation("DispositivoAsignadoPor", fields: [asignadoPorId], references: [id])
+  asignadoPorId String
+
+  createdAt DateTime @default(now())
+
+  vales ValeSalida[]
+
+  @@index([colaboradorId])
 }

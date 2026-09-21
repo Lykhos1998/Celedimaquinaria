@@ -12,9 +12,9 @@ const ESTADO_MODULOS = [
   { label: "Taller", estado: "construido" as const },
   { label: "Finanzas", estado: "construido" as const },
   { label: "Logística", estado: "construido" as const },
-  { label: "RH", estado: "definido" as const },
+  { label: "RH", estado: "construido" as const },
   { label: "Equipos / Flota", estado: "construido" as const },
-  { label: "Sistemas / TI", estado: "definido" as const },
+  { label: "Sistemas / TI", estado: "construido" as const },
 ];
 
 const ESTADO_META = {
@@ -43,6 +43,8 @@ export default async function GerenciaPage() {
     danosDetectados,
     cuentasPorCobrar,
     ordenesPorPagar,
+    permisosPendientes,
+    ticketsAbiertos,
   ] = await Promise.all([
     prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
     prisma.qRVehiculo.count({
@@ -68,6 +70,8 @@ export default async function GerenciaPage() {
       where: { estado: { in: ["APROBADA", "RECIBIDA"] }, pagada: false },
       _sum: { monto: true },
     }),
+    prisma.permiso.count({ where: { estado: "SOLICITADO" } }),
+    prisma.ticketSoporte.count({ where: { estado: "ABIERTO" } }),
   ]);
 
   return (
@@ -94,6 +98,8 @@ export default async function GerenciaPage() {
           value={`$${(ordenesPorPagar._sum.monto ?? 0).toLocaleString("es-MX")}`}
           hint="Finanzas"
         />
+        <KpiCard label="Permisos pendientes" value={permisosPendientes} hint="RH" />
+        <KpiCard label="Tickets de soporte abiertos" value={ticketsAbiertos} hint="Sistemas / TI" />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">
