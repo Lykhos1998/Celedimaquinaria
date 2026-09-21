@@ -12,3 +12,11 @@ export async function requireAcceso(modulo: ModuloSlug) {
 
   return session;
 }
+
+// Para rutas de autoservicio ("Mi cuenta"): cualquier colaborador con sesión
+// puede entrar, sin importar qué módulos ve su rol.
+export async function requireSesion() {
+  const session = await auth();
+  if (!session) redirect("/login");
+  return session;
+}

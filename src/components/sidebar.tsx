@@ -15,6 +15,7 @@ import {
   Forklift,
   Monitor,
   LayoutDashboard,
+  UserCircle,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +47,7 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const miCuentaActiva = pathname === "/mi-cuenta" || pathname.startsWith("/mi-cuenta/");
 
   return (
     <>
@@ -97,6 +99,21 @@ export function Sidebar({
             );
           })}
         </nav>
+
+        <div className="border-t border-white/10 px-3 py-2">
+          <Link
+            href="/mi-cuenta"
+            onClick={onClose}
+            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+              miCuentaActiva
+                ? "bg-sidebar-active text-white"
+                : "text-sidebar-muted hover:bg-white/5 hover:text-sidebar-foreground"
+            }`}
+          >
+            <UserCircle size={17} />
+            Mi cuenta
+          </Link>
+        </div>
 
         <div className="border-t border-white/10 px-4 py-3 text-xs text-sidebar-muted">
           Especificación funcional · v. inicial

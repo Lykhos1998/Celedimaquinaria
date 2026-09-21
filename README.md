@@ -124,7 +124,9 @@ src/lib/finanzas.ts           Constantes, folio y estado derivado (Pendiente/Ven
 src/lib/rh.ts                  Constantes, folios y cálculo de días asistidos (a partir de Vigilancia) de RH
 src/lib/sistemas-ti.ts         Constantes y folios del módulo Sistemas/TI
 src/lib/storage.ts            Subida de archivos: Vercel Blob si hay token, si no disco local
-src/app/(app)/layout.tsx      Shell con sidebar + header por rol
+src/lib/access.ts             requireAcceso (por módulo) y requireSesion (cualquier colaborador logueado)
+src/app/(app)/layout.tsx      Resuelve la sesión y monta AppShell
+src/components/app-shell.tsx  Shell responsive: estado de abrir/cerrar el menú entre Sidebar y Header
 src/app/(app)/vigilancia/     Módulo Vigilancia
 src/app/(app)/marketing/      Módulo Marketing (dashboard, leads, gasto publicitario)
 src/app/(app)/ventas/         Módulo Ventas (pipeline kanban, mi cartera, contratos)
@@ -136,6 +138,7 @@ src/app/(app)/danos/          Módulo Área de Daños (inspecciones, daños con 
 src/app/(app)/finanzas/       Módulo Finanzas (cuentas por cobrar, cuentas por pagar)
 src/app/(app)/rh/             Módulo RH (colaboradores, permisos y vacaciones, nómina)
 src/app/(app)/sistemas-ti/    Módulo Sistemas/TI (tickets, dispositivos, vales de salida)
+src/app/(app)/mi-cuenta/      Autoservicio para cualquier rol (mis tickets, permisos, dispositivo)
 src/app/(app)/gerencia/       Vista global de Gerencia
 public/uploads/danos/         Evidencia fotográfica en desarrollo local sin Vercel Blob (no versionada)
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
@@ -283,19 +286,43 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
 - **Tickets de Soporte** (`/sistemas-ti`): modelo nuevo `TicketSoporte` (folio `TK-XXXX`) con
   categoría, prioridad y estado Abierto/Resuelto.
 - **Mis Dispositivos** (`/sistemas-ti/dispositivos`): modelo nuevo `Dispositivo` (código
-  `DI-AAAA-XXX`) — catálogo de equipo de cómputo con asignación a un colaborador. La
-  especificación lo describe como una vista de autoservicio por colaborador; aquí Sistemas/TI
-  lo administra de forma centralizada (como ya hace Equipos/Flota con la maquinaria) porque
-  todavía no existe un portal de autoservicio en los demás módulos — ver "Próximos pasos".
+  `DI-AAAA-XXX`) — catálogo de equipo de cómputo con asignación a un colaborador. El catálogo
+  en sí (altas, números de serie, a quién se le asigna cada equipo) lo sigue administrando
+  Sistemas/TI de forma centralizada, como ya hace Equipos/Flota con la maquinaria; lo que cada
+  colaborador puede hacer por su cuenta con el equipo ya asignado vive en "Mi cuenta" (ver
+  abajo).
 - **Vales de Salida** (`/sistemas-ti/vales`): reutiliza el modelo `ValeSalida` que ya existía
   en Vigilancia (nunca hizo falta uno nuevo), solo le agrega un vínculo opcional a
-  `Dispositivo`. Implementa el flujo de 3 pasos exacto de la especificación: (1) aquí se
-  registra la solicitud a nombre del colaborador dueño del equipo, (2) Sistemas/TI la autoriza
-  con un botón dedicado — a diferencia de los vales genéricos que crea Vigilancia, estos NO se
-  autorizan solos al crearse — y (3) Vigilancia, en su propia pantalla de vales
-  (`/vigilancia/vales`, sin tocar su lógica de captura), ve el vale ya autorizado y hace la
-  validación física en la puerta; mientras no esté autorizado, ahí se muestra como "Esperando
-  a Sistemas/TI" en vez del botón de autorizar.
+  `Dispositivo`. Implementa el flujo de 3 pasos exacto de la especificación: (1) el colaborador
+  dueño del equipo solicita la salida desde "Mi cuenta" (o, en su nombre, Sistemas/TI desde
+  aquí), (2) Sistemas/TI la autoriza con un botón dedicado — a diferencia de los vales
+  genéricos que crea Vigilancia, estos NO se autorizan solos al crearse — y (3) Vigilancia, en
+  su propia pantalla de vales (`/vigilancia/vales`, sin tocar su lógica de captura), ve el vale
+  ya autorizado y hace la validación física en la puerta; mientras no esté autorizado, ahí se
+  muestra como "Esperando a Sistemas/TI" en vez del botón de autorizar.
+
+### Notas sobre "Mi cuenta" (autoservicio)
+
+- Sección transversal, visible para **cualquier colaborador con sesión** sin importar su rol —
+  a diferencia de todo lo demás, no depende de `MODULOS_POR_ROL` (usa `requireSesion()` en vez
+  de `requireAcceso()`). Aparece fija al fondo del menú lateral, debajo de los módulos propios
+  de cada rol.
+- Resuelve la simplificación que quedó anotada al construir RH y Sistemas/TI: antes, esas áreas
+  capturaban tickets, permisos y vales de equipo *a nombre de* otros colaboradores porque nadie
+  más tenía dónde hacerlo. Ahora cada quien reporta lo suyo directamente:
+  - **Mis Tickets** (`/mi-cuenta`): mismo modelo `TicketSoporte`, sin selector de "reportado
+    por" — siempre es quien tiene la sesión abierta. Solo lectura de estado; resolverlo lo
+    sigue haciendo Sistemas/TI.
+  - **Mis Permisos** (`/mi-cuenta/permisos`): mismo modelo `Permiso`, sin selector de
+    colaborador. Solo lectura de estado; aprobarlo/rechazarlo lo sigue haciendo RH.
+  - **Mi Dispositivo** (`/mi-cuenta/dispositivo`): lista el equipo que Sistemas/TI ya le asignó
+    a este colaborador y deja solicitar su salida con un botón — es el mismo
+    `crearValeDispositivo`, ahora disparado por el propio dueño del equipo en vez de por TI.
+    Bloquea una segunda solicitud mientras ya haya una en curso (`solicitado`/`autorizado`/`en
+    salida`) para no duplicar vales del mismo equipo.
+- Lo que sigue centralizado a propósito, sin autoservicio: compras directas (solo Compras
+  cotiza), altas/bajas de colaborador (solo RH) y aprobar/rechazar/resolver (siempre le toca al
+  área administradora, nunca a quien reporta).
 
 ## Próximos pasos sugeridos
 
@@ -303,10 +330,9 @@ Los 11 módulos de la especificación funcional (versión inicial, 8 de julio de
 construidos. Lo que sigue, según la sección 7 y lo que quedó anotado como simplificación en
 cada módulo nuevo:
 
-1. Portal de autoservicio por rol: hoy Compras/RH/Sistemas-TI son quienes capturan en nombre
-   de otros (solicitudes de compra directa, altas de colaborador, tickets y vales de TI). Si
-   se quiere que cada colaborador reporte lo suyo directamente desde su propio módulo, es el
-   cambio transversal más grande pendiente.
+1. ~~Portal de autoservicio por rol~~ — construido en "Mi cuenta" (tickets, permisos/vacaciones
+   y vale de salida de equipo). Lo que sigue centralizado a propósito (compras directas, altas
+   de colaborador) está explicado en sus notas de módulo, no es autoservicio pendiente.
 2. Detalle de compras para RH y Sistemas-TI (qué se compra, con qué frecuencia) — sigue siendo
    un punto abierto en la especificación, independiente de que Compras ya soporta esas áreas.
 3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
