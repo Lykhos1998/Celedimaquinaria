@@ -357,8 +357,12 @@ cada módulo nuevo:
    de colaborador) está explicado en sus notas de módulo, no es autoservicio pendiente.
 2. Detalle de compras para RH y Sistemas-TI (qué se compra, con qué frecuencia) — sigue siendo
    un punto abierto en la especificación, independiente de que Compras ya soporta esas áreas.
-3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
-   neutral de referencia.
+3. ~~Definir identidad de marca~~ — el logo real de Celedi Maquinaria ya reemplaza el badge
+   "CM" (login y menú lateral), y el acento de color de toda la app (`--brand` en
+   `src/app/globals.css`) es el azul del logo (`#013b92` claro, `#014fc5` oscuro para que no
+   se apague sobre el fondo casi negro). El naranja del logo se dejó fuera de fondos sólidos
+   de botón/badge a propósito: su contraste con texto blanco (~3.5:1) queda por debajo del
+   mínimo de accesibilidad (4.5:1) para texto normal.
 4. El proyecto ya corre sobre PostgreSQL + Vercel Blob y está listo para desplegarse (ver
    "Desplegar en Vercel" arriba); falta decidir con Andrei si esa es la plataforma
    definitiva o si se autoalojará (Docker) en otro lado.

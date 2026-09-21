@@ -9,12 +9,15 @@
   --foreground: #14151a;
   --muted: #5b5f6b;
   --border: #dfe1e8;
-  --brand: #7c1836;
+  /* Azul de la marca Celedi Maquinaria (sacado del logo). El naranja del
+     logo no se usa como fondo de botón/badge: su contraste con texto
+     blanco (~3.5:1) queda por debajo del mínimo de accesibilidad. */
+  --brand: #013b92;
   --brand-foreground: #ffffff;
   --sidebar: #1a1621;
   --sidebar-foreground: #e7e4ec;
   --sidebar-muted: #9b93a8;
-  --sidebar-active: #7c1836;
+  --sidebar-active: #013b92;
 }
 
 .dark {
@@ -24,12 +27,14 @@
   --foreground: #edeef2;
   --muted: #9a9ca6;
   --border: #2a2c36;
-  --brand: #b23458;
+  /* Mismo azul, un poco más claro para que no se apague sobre el fondo
+     casi negro del tema oscuro. */
+  --brand: #014fc5;
   --brand-foreground: #ffffff;
   --sidebar: #0c0a10;
   --sidebar-foreground: #e7e4ec;
   --sidebar-muted: #8b8398;
-  --sidebar-active: #b23458;
+  --sidebar-active: #014fc5;
 }
 
 @theme inline {
