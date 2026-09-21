@@ -16,5 +16,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // "brand" son assets estáticos públicos (logo) que deben verse también en
+  // /login, sin sesión — si no, el redirect de arriba los intercepta como
+  // si fueran una página protegida y la imagen nunca carga.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|brand).*)"],
 };
