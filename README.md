@@ -27,8 +27,9 @@ oscuro y modo claro (toggle en el header).
 | Compras | ✅ Construido (proveedores, órdenes de compra, aprobación por Dirección, cierra el flujo con Taller) |
 | Logística | ✅ Construido (flotilla, traslados, cruce automático con el QR de Vigilancia) |
 | Área de Daños | ✅ Construido (reportes de inspección, daños con evidencia fotográfica, cierra el ciclo con Taller y Ventas) |
+| Finanzas | ✅ Construido (cuentas por cobrar de renta y daños, cuentas por pagar de Compras) |
 | Gerencia | ✅ Construido (KPIs globales + estado de módulos) |
-| Finanzas, RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
+| RH, Sistemas/TI | 🕓 Definidos en la especificación, pendientes de construir |
 
 ## Arranque local
 
@@ -107,7 +108,7 @@ disco local en el camino de producción). Pasos en el dashboard de Vercel:
 ## Estructura
 
 ```
-prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística, Área de Daños)
+prisma/schema.prisma        Modelo de datos (roles, Vigilancia, Comercial, Equipos/Flota, Taller, Compras, Logística, Área de Daños, Finanzas)
 prisma/seed.ts               Seed de usuarios demo
 src/auth.ts                  Configuración de NextAuth (Credentials + JWT)
 src/proxy.ts                  Protección de rutas por sesión (antes "middleware")
@@ -118,6 +119,7 @@ src/lib/taller.ts             Constantes y helpers del módulo Taller (estados, 
 src/lib/compras.ts            Constantes y helpers del módulo Compras (estados, áreas, folio de OC)
 src/lib/logistica.ts          Constantes, folio y el cruce con el QR de Vigilancia (procesarEscaneoQR)
 src/lib/danos.ts              Constantes y folio del módulo Área de Daños
+src/lib/finanzas.ts           Constantes, folio y estado derivado (Pendiente/Vencida/Cobrada) de Finanzas
 src/lib/storage.ts            Subida de archivos: Vercel Blob si hay token, si no disco local
 src/app/(app)/layout.tsx      Shell con sidebar + header por rol
 src/app/(app)/vigilancia/     Módulo Vigilancia
@@ -128,6 +130,7 @@ src/app/(app)/taller/         Módulo Taller (órdenes de servicio, refacciones)
 src/app/(app)/compras/        Módulo Compras (órdenes de compra, proveedores)
 src/app/(app)/logistica/      Módulo Logística (traslados, flotilla)
 src/app/(app)/danos/          Módulo Área de Daños (inspecciones, daños con foto)
+src/app/(app)/finanzas/       Módulo Finanzas (cuentas por cobrar, cuentas por pagar)
 src/app/(app)/gerencia/       Vista global de Gerencia
 public/uploads/danos/         Evidencia fotográfica en desarrollo local sin Vercel Blob (no versionada)
 src/app/(app)/[modulo]/       Placeholder "próximamente" para módulos aún no construidos
@@ -227,9 +230,29 @@ docs/especificacion-funcional.pdf   Documento fuente de la especificación
   los ofrece como cola — elegir uno fija la unidad, pone el tipo en Correctivo y prellena la
   descripción con los daños encontrados (editable antes de guardar).
 - Conexión hacia Ventas: `src/app/(app)/ventas/contratos/page.tsx` suma el costo estimado de
-  los daños ligados a cada contrato y lo muestra como badge "Daños por cobrar" — la
-  especificación pide que Ventas gestione el cobro, pero como Finanzas todavía no existe,
-  por ahora es solo el indicador de cuánto habría que cobrar, no un cargo real.
+  los daños ligados a cada contrato y lo muestra como badge "Daños por cobrar" — ese badge
+  sigue siendo solo un indicador informativo (cuánto habría que cobrar); el cargo real ahora
+  se registra en Finanzas (ver abajo), que es quien de verdad gestiona el cobro.
+
+### Notas sobre el módulo Finanzas
+
+- Dos vistas, dos flujos independientes: **Cuentas por Cobrar** (`/finanzas`) y **Cuentas por
+  Pagar** (`/finanzas/por-pagar`).
+- **Cuentas por cobrar**: un nuevo modelo `CuentaCobrar` (folio `CXC-AAAA-XXXX`) registra cada
+  cobro, con concepto (Renta mensual / Daño / Otro), monto, fecha de vencimiento y quién lo
+  marcó cobrado. El formulario ofrece como cola los contratos activos que todavía no tienen
+  una renta generada este mes y los daños con costo estimado que aún no se han cobrado
+  (`Danio.cuentaCobrar` nulo) — elegir uno prellena concepto, descripción y monto, igual que
+  el patrón ya usado en Compras con las solicitudes de Taller. El estado (Pendiente / Vencida
+  / Cobrada) no se guarda: se deriva de `cobrada` y `fechaVencimiento` en
+  `src/lib/finanzas.ts#estadoCuentaCobrar`, igual que `estadoContrato` en Comercial, así no
+  depende de un job para marcar vencimientos.
+- **Cuentas por pagar**: no es un modelo nuevo — extiende `OrdenCompra` (ya construida en
+  Compras) con `pagada` / `fechaPago` / `pagadoPor`. Cualquier orden que Dirección ya aprobó
+  aparece aquí; Finanzas solo marca cuándo se pagó, sin duplicar el flujo de aprobación que
+  ya vive en Compras.
+- Dashboard de Gerencia: agrega dos KPIs (Por cobrar pendiente / Por pagar pendiente) que
+  suman directamente sobre estas mismas tablas.
 
 ## Próximos pasos sugeridos
 
@@ -237,8 +260,8 @@ Según la sección 7 de la especificación:
 
 1. Validar con Andrei los módulos marcados como pendientes en el documento, y el detalle de
    compras para RH/Sistemas-TI que sigue como punto abierto.
-2. Finanzas es un buen candidato para el siguiente módulo: convertiría el "Daños por cobrar"
-   de Ventas y los montos de Compras/Contratos en cuentas por cobrar/pagar reales.
+2. RH y Sistemas/TI son los dos módulos que faltan por construir — ninguno tiene alcance
+   definido todavía más allá del login y las compras que ya pasan por Compras.
 3. Definir identidad de marca (logo, colores) — actualmente se usa un color vino/maroon
    neutral de referencia.
 4. El proyecto ya corre sobre PostgreSQL + Vercel Blob y está listo para desplegarse (ver

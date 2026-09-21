@@ -67,11 +67,15 @@ model User {
 
   ordenesCompraRegistradas OrdenCompra[] @relation("OrdenCompraRegistradaPor")
   ordenesCompraAprobadas   OrdenCompra[] @relation("OrdenCompraAprobadaPor")
+  ordenesCompraPagadas     OrdenCompra[] @relation("OrdenCompraPagadaPor")
 
   trasladosProgramados Traslado[]
 
   reportesInspeccionados ReporteInspeccion[]
   danosRegistrados       Danio[]
+
+  cuentasCobrarRegistradas CuentaCobrar[] @relation("CuentaCobrarRegistradaPor")
+  cuentasCobrarCobradas    CuentaCobrar[] @relation("CuentaCobrarCobradaPor")
 }
 
 // --- Módulo Vigilancia --------------------------------------------------
@@ -244,6 +248,7 @@ model Contrato {
   equipoId String?
 
   reportesInspeccion ReporteInspeccion[]
+  cuentasCobrar      CuentaCobrar[]
 }
 
 // --- Módulo Equipos / Flota (transversal) -------------------------------
@@ -432,6 +437,13 @@ model OrdenCompra {
   aprobadoPorId   String?
   fechaAprobacion DateTime?
 
+  // Cuenta por pagar (Finanzas). Independiente del estado de la orden: una
+  // orden aprobada o recibida puede tardar en pagarse.
+  pagada      Boolean   @default(false)
+  fechaPago   DateTime?
+  pagadoPor   User?     @relation("OrdenCompraPagadaPor", fields: [pagadoPorId], references: [id])
+  pagadoPorId String?
+
   createdAt DateTime @default(now())
 
   @@index([estado])
@@ -536,5 +548,49 @@ model Danio {
 
   createdAt DateTime @default(now())
 
+  cuentaCobrar CuentaCobrar?
+
   @@index([reporteId])
+}
+
+// --- Módulo Finanzas -------------------------------------------------------
+
+enum ConceptoCobro {
+  RENTA_MENSUAL
+  DANO
+  OTRO
+}
+
+// El estado real (Pendiente/Vencida/Cobrada) se deriva de `cobrada` y
+// `fechaVencimiento` en src/lib/finanzas.ts, igual que EstadoContrato — así
+// no depende de un job para marcar vencimientos.
+model CuentaCobrar {
+  id          String        @id @default(cuid())
+  folio       String        @unique // CXC-AAAA-XXXX
+  concepto    ConceptoCobro
+  descripcion String
+  monto       Float
+  cobrada     Boolean       @default(false)
+
+  // Origen del cobro: una renta mensual (ligada al contrato) o un daño
+  // (ligado al hallazgo de Área de Daños). Ambos opcionales porque también
+  // se puede registrar un cobro manual ("OTRO") sin origen en el sistema.
+  contrato   Contrato? @relation(fields: [contratoId], references: [id])
+  contratoId String?
+
+  danio   Danio?  @relation(fields: [danioId], references: [id])
+  danioId String? @unique
+
+  fechaVencimiento DateTime
+  fechaCobro       DateTime?
+
+  registradoPor   User   @relation("CuentaCobrarRegistradaPor", fields: [registradoPorId], references: [id])
+  registradoPorId String
+  cobradoPor      User?  @relation("CuentaCobrarCobradaPor", fields: [cobradoPorId], references: [id])
+  cobradoPorId    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([contratoId])
+  @@index([cobrada])
 }

@@ -24,7 +24,7 @@ export const MODULOS: Record<
   danos: { label: "Área de Daños", implementado: true },
   compras: { label: "Compras", implementado: true },
   taller: { label: "Taller", implementado: true },
-  finanzas: { label: "Finanzas", implementado: false },
+  finanzas: { label: "Finanzas", implementado: true },
   logistica: { label: "Logística", implementado: true },
   rh: { label: "RH", implementado: false },
   equipos: { label: "Equipos / Flota", implementado: true },

@@ -10,7 +10,7 @@ const ESTADO_MODULOS = [
   { label: "Área de Daños", estado: "construido" as const },
   { label: "Compras", estado: "construido" as const },
   { label: "Taller", estado: "construido" as const },
-  { label: "Finanzas", estado: "definido" as const },
+  { label: "Finanzas", estado: "construido" as const },
   { label: "Logística", estado: "construido" as const },
   { label: "RH", estado: "definido" as const },
   { label: "Equipos / Flota", estado: "construido" as const },
@@ -41,6 +41,8 @@ export default async function GerenciaPage() {
     comprasPendientes,
     trasladosEnCurso,
     danosDetectados,
+    cuentasPorCobrar,
+    ordenesPorPagar,
   ] = await Promise.all([
     prisma.asistenciaRegistro.count({ where: { timestamp: { gte: inicioDelDia } } }),
     prisma.qRVehiculo.count({
@@ -61,6 +63,11 @@ export default async function GerenciaPage() {
     prisma.ordenCompra.count({ where: { estado: "PENDIENTE_APROBACION" } }),
     prisma.traslado.count({ where: { estado: { in: ["PROGRAMADO", "EN_TRANSITO"] } } }),
     prisma.danio.count({ where: { createdAt: { gte: inicioDelDia } } }),
+    prisma.cuentaCobrar.aggregate({ where: { cobrada: false }, _sum: { monto: true } }),
+    prisma.ordenCompra.aggregate({
+      where: { estado: { in: ["APROBADA", "RECIBIDA"] }, pagada: false },
+      _sum: { monto: true },
+    }),
   ]);
 
   return (
@@ -77,6 +84,16 @@ export default async function GerenciaPage() {
         <KpiCard label="Compras por aprobar" value={comprasPendientes} hint="Esperando a Dirección" />
         <KpiCard label="Traslados en curso" value={trasladosEnCurso} hint="Logística" />
         <KpiCard label="Daños detectados hoy" value={danosDetectados} hint="Área de Daños" />
+        <KpiCard
+          label="Por cobrar pendiente"
+          value={`$${(cuentasPorCobrar._sum.monto ?? 0).toLocaleString("es-MX")}`}
+          hint="Finanzas"
+        />
+        <KpiCard
+          label="Por pagar pendiente"
+          value={`$${(ordenesPorPagar._sum.monto ?? 0).toLocaleString("es-MX")}`}
+          hint="Finanzas"
+        />
       </div>
 
       <div className="rounded-xl border border-border bg-surface">
