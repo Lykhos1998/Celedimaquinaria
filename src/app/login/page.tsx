@@ -92,10 +92,6 @@ export default function LoginPage() {
               {loading ? "Entrando…" : "Entrar"}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-muted">
-            Usuarios demo: ver README del proyecto.
-          </p>
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted">
