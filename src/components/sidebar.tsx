@@ -62,12 +62,8 @@ export function Sidebar({
         }`}
       >
         <div className="flex items-center justify-between gap-2 px-5 py-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-active text-sm font-bold text-white">
-              CM
-            </div>
-            <span className="text-sm font-semibold">Celedi Maquinaria</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- logo estático, no necesita el pipeline de optimización de next/image */}
+          <img src="/brand/celedi-logo.png" alt="Celedi Maquinaria" className="h-auto w-32" />
           <button
             onClick={onClose}
             className="text-sidebar-muted transition hover:text-sidebar-foreground lg:hidden"

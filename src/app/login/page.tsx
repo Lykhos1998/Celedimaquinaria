@@ -49,11 +49,14 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         <div className="rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/30">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand/70 text-xl font-bold text-brand-foreground shadow-lg shadow-brand/30">
-              CM
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">Celedi Maquinaria</h1>
-            <p className="mt-1 text-sm text-muted">Sistema integral por roles</p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo estático, no necesita el pipeline de optimización de next/image */}
+            <img
+              src="/brand/celedi-logo.png"
+              alt="Celedi Maquinaria"
+              className="mx-auto mb-3 h-auto w-48"
+            />
+            <h1 className="sr-only">Celedi Maquinaria</h1>
+            <p className="text-sm text-muted">Sistema integral por roles</p>
           </div>
 
           {vencido ? (
