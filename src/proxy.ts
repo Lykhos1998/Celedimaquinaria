@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { trialVencido } from "@/lib/trial";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
+
+  // Pasado el corte de prueba, nadie entra — ni con sesión ya iniciada
+  // desde antes (el JWT dura 30 días por default, más que el periodo de
+  // prueba). /login sigue siendo visible para mostrar el aviso de que
+  // terminó, en vez de simplemente colgarse.
+  if (trialVencido()) {
+    if (!isLoginPage) {
+      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    }
+    return;
+  }
 
   if (!isLoggedIn && !isLoginPage) {
     const loginUrl = new URL("/login", req.nextUrl.origin);

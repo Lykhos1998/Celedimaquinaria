@@ -106,6 +106,28 @@ disco local en el camino de producción). Pasos en el dashboard de Vercel:
    Después de esto ya puedes entrar con los mismos usuarios demo de la tabla de arriba, pero
    en la URL pública que te dio Vercel — compártela entre los dos dispositivos para la demo.
 
+## Periodo de prueba
+
+Para mandar el sistema a un cliente a probar sin dejarlo con acceso libre indefinido, hay un
+corte automático opcional controlado por una sola variable:
+
+- **Activarlo**: en Vercel → **Settings → Environment Variables**, agrega
+  `NEXT_PUBLIC_TRIAL_HASTA` con una fecha en formato ISO (ej. `2026-09-29T06:00:00Z`) y
+  redespliega. A partir de ahí:
+  - Toda la app muestra una franja arriba avisando "Versión de prueba — válida hasta el
+    [fecha] ([N] días). Contacta a Lykhos para activarla."; el login muestra el mismo aviso.
+  - Pasada esa fecha, nadie puede entrar — ni con una sesión ya iniciada desde antes (el login
+    de NextAuth dura 30 días por default, más que cualquier prueba corta). El login deja de
+    mostrar el formulario y muestra "El periodo de prueba terminó. Contacta a Lykhos para
+    activar el sistema."
+- **Desactivarlo (cliente ya compró)**: borra `NEXT_PUBLIC_TRIAL_HASTA` de Vercel (o cámbiala a
+  una fecha muy lejana) y redespliega. Sin esa variable, el corte queda completamente
+  desactivado — así el desarrollo local nunca depende de acordarse de ella.
+- Vive en `src/lib/trial.ts` (una sola fuente de verdad), y lo aplican tres lugares:
+  `src/auth.ts` (rechaza logins nuevos pasada la fecha), `src/proxy.ts` (expulsa a cualquiera,
+  con sesión o sin ella) y `src/components/trial-banner.tsx` + `src/app/login/page.tsx`
+  (avisan mientras sigue activo).
+
 ## Estructura
 
 ```

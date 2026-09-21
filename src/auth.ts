@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { trialVencido } from "@/lib/trial";
 import type { Rol } from "@prisma/client";
 
 declare module "next-auth" {
@@ -30,6 +31,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Contraseña", type: "password" },
       },
       authorize: async (credentials) => {
+        // No permite iniciar sesión nueva pasado el corte de prueba, aunque
+        // alguien tenga las credenciales correctas.
+        if (trialVencido()) return null;
+
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
