@@ -1,39 +1,10 @@
-import { PrismaClient, Rol } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { seedDemoUsers } from "../src/lib/seed-demo-users";
+import { prisma } from "../src/lib/prisma";
 
-const prisma = new PrismaClient();
-
-const USUARIOS: { nombre: string; email: string; rol: Rol }[] = [
-  { nombre: "Andrei Gerencia", email: "gerencia@celedimaquinaria.com", rol: Rol.GERENCIA },
-  { nombre: "Vicente Vigilante", email: "vigilancia@celedimaquinaria.com", rol: Rol.VIGILANTE },
-  { nombre: "Marisol Marketing", email: "marketing@celedimaquinaria.com", rol: Rol.MARKETING },
-  { nombre: "Adrián Asesor", email: "ventas@celedimaquinaria.com", rol: Rol.ASESOR_VENTAS },
-  { nombre: "Diana Daños", email: "danos@celedimaquinaria.com", rol: Rol.INSPECTOR_DANOS },
-  { nombre: "Carlos Compras", email: "compras@celedimaquinaria.com", rol: Rol.COMPRAS },
-  { nombre: "Tomás Taller", email: "taller@celedimaquinaria.com", rol: Rol.TALLER },
-  { nombre: "Fernanda Finanzas", email: "finanzas@celedimaquinaria.com", rol: Rol.FINANZAS },
-  { nombre: "Leo Logística", email: "logistica@celedimaquinaria.com", rol: Rol.LOGISTICA },
-  { nombre: "Rita RH", email: "rh@celedimaquinaria.com", rol: Rol.RH },
-  { nombre: "Iván Sistemas", email: "ti@celedimaquinaria.com", rol: Rol.SISTEMAS_TI },
-];
-
-const PASSWORD_DEMO = "celedi2026";
-
-async function main() {
-  const passwordHash = await bcrypt.hash(PASSWORD_DEMO, 10);
-
-  for (const u of USUARIOS) {
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: {},
-      create: { ...u, passwordHash },
-    });
-  }
-
-  console.log(`Seed listo. ${USUARIOS.length} usuarios creados con contraseña "${PASSWORD_DEMO}".`);
-}
-
-main()
+seedDemoUsers()
+  .then(({ creados, password }) => {
+    console.log(`Seed listo. ${creados} usuarios creados con contraseña "${password}".`);
+  })
   .catch((e) => {
     console.error(e);
     process.exit(1);
