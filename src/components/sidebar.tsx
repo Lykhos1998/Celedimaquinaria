@@ -116,7 +116,7 @@ export function Sidebar({
         </div>
 
         <div className="border-t border-white/10 px-4 py-3 text-xs text-sidebar-muted">
-          Especificación funcional · v. inicial
+          Hecho por <span className="font-semibold text-sidebar-foreground">Lykhos</span>
         </div>
       </aside>
     </>
