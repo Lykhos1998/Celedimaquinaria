@@ -115,7 +115,9 @@ export function Sidebar({
           </Link>
         </div>
 
-        <div className="border-t border-white/10 px-4 py-3 text-xs text-sidebar-muted">
+        <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3 text-xs text-sidebar-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element -- logo estático chico, no necesita el pipeline de optimización de next/image */}
+          <img src="/brand/lykhos-logo.png" alt="" className="h-4 w-4 opacity-70" />
           Desarrollado por <span className="font-semibold text-sidebar-foreground">Lykhos</span>
         </div>
       </aside>
