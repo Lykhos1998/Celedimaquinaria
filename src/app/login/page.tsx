@@ -121,7 +121,7 @@ export default function LoginPage() {
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted">
           {/* eslint-disable-next-line @next/next/no-img-element -- logo estático chico, no necesita el pipeline de optimización de next/image */}
-          <img src="/brand/lykhos-logo.png" alt="" className="h-4 w-4 opacity-70" />
+          <img src="/brand/lykhos-logo.png" alt="" className="h-4 w-4 opacity-70 invert dark:invert-0" />
           Desarrollado por <span className="font-semibold text-foreground">Lykhos</span>
         </div>
       </div>
