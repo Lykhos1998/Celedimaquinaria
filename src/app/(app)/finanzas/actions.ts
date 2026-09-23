@@ -56,6 +56,12 @@ export async function marcarCuentaCobrada(id: string) {
 
 export async function marcarOrdenCompraPagada(id: string) {
   const user = await finanzas();
+
+  const orden = await prisma.ordenCompra.findUniqueOrThrow({ where: { id } });
+  if (orden.estado !== "APROBADA" && orden.estado !== "RECIBIDA") {
+    throw new Error("Solo se puede pagar una orden de compra aprobada por Dirección.");
+  }
+
   await prisma.ordenCompra.update({
     where: { id },
     data: { pagada: true, fechaPago: new Date(), pagadoPorId: user.id },
