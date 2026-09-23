@@ -62,8 +62,16 @@ export async function crearOrdenCompra(data: {
   revalidarCompras();
 }
 
+async function ordenAjenoA(id: string, aprobadoPorId: string) {
+  const orden = await prisma.ordenCompra.findUniqueOrThrow({ where: { id } });
+  if (orden.registradoPorId === aprobadoPorId) {
+    throw new Error("No puedes aprobar o rechazar una orden de compra que tú mismo registraste.");
+  }
+}
+
 export async function aprobarOrdenCompra(id: string) {
   const aprobadoPorId = await direccion();
+  await ordenAjenoA(id, aprobadoPorId);
   await prisma.ordenCompra.update({
     where: { id },
     data: { estado: "APROBADA", aprobadoPorId, fechaAprobacion: new Date() },
@@ -73,6 +81,7 @@ export async function aprobarOrdenCompra(id: string) {
 
 export async function rechazarOrdenCompra(id: string) {
   const aprobadoPorId = await direccion();
+  await ordenAjenoA(id, aprobadoPorId);
   await prisma.ordenCompra.update({
     where: { id },
     data: { estado: "RECHAZADA", aprobadoPorId, fechaAprobacion: new Date() },

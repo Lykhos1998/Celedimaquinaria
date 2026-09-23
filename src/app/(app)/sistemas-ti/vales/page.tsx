@@ -1,8 +1,10 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ValeDispositivoForm } from "@/components/sistemas-ti/vale-dispositivo-form";
 import { ValesDispositivoTable } from "@/components/sistemas-ti/vales-dispositivo-table";
 
 export default async function SistemasTIValesPage() {
+  const session = await auth();
   const [dispositivosAsignados, vales] = await Promise.all([
     prisma.dispositivo.findMany({
       where: { activo: true, colaboradorId: { not: null } },
@@ -30,7 +32,7 @@ export default async function SistemasTIValesPage() {
             colaboradorNombre: d.colaborador!.nombre,
           }))}
       />
-      <ValesDispositivoTable vales={vales} />
+      <ValesDispositivoTable vales={vales} sessionUserId={session?.user.id ?? ""} />
     </div>
   );
 }

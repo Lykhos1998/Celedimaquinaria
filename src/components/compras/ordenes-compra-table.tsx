@@ -15,6 +15,7 @@ export type OrdenCompraRow = {
   estado: EstadoOrdenCompra;
   createdAt: Date;
   proveedor: { nombre: string };
+  registradoPorId: string;
   registradoPor: { nombre: string };
   aprobadoPor: { nombre: string } | null;
   refaccion: { ordenServicio: { folio: string } } | null;
@@ -23,9 +24,11 @@ export type OrdenCompraRow = {
 export function OrdenesCompraTable({
   ordenes,
   esDireccion,
+  sessionUserId,
 }: {
   ordenes: OrdenCompraRow[];
   esDireccion: boolean;
+  sessionUserId: string;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -76,7 +79,7 @@ export function OrdenesCompraTable({
                     )}
                   </td>
                   <td className="px-5 py-2 text-right">
-                    {o.estado === "PENDIENTE_APROBACION" && esDireccion && (
+                    {o.estado === "PENDIENTE_APROBACION" && esDireccion && o.registradoPorId !== sessionUserId && (
                       <div className="flex justify-end gap-1">
                         <button
                           disabled={pending}
@@ -93,6 +96,9 @@ export function OrdenesCompraTable({
                           Rechazar
                         </button>
                       </div>
+                    )}
+                    {o.estado === "PENDIENTE_APROBACION" && esDireccion && o.registradoPorId === sessionUserId && (
+                      <span className="text-xs text-muted">Tu propia orden</span>
                     )}
                     {o.estado === "PENDIENTE_APROBACION" && !esDireccion && (
                       <span className="text-xs text-muted">Esperando a Dirección</span>

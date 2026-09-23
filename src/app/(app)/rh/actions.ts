@@ -83,6 +83,12 @@ export async function crearPermiso(data: {
 
 export async function resolverPermiso(id: string, estado: "APROBADO" | "RECHAZADO") {
   const user = await rh();
+
+  const permiso = await prisma.permiso.findUniqueOrThrow({ where: { id } });
+  if (permiso.colaboradorId === user.id) {
+    throw new Error("No puedes aprobar o rechazar tu propia solicitud de permiso.");
+  }
+
   await prisma.permiso.update({
     where: { id },
     data: { estado, resueltoPorId: user.id },

@@ -69,7 +69,11 @@ export default async function ComprasPage() {
         proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
       />
 
-      <OrdenesCompraTable ordenes={ordenes} esDireccion={session?.user.rol === "GERENCIA"} />
+      <OrdenesCompraTable
+        ordenes={ordenes}
+        esDireccion={session?.user.rol === "GERENCIA"}
+        sessionUserId={session?.user.id ?? ""}
+      />
     </div>
   );
 }

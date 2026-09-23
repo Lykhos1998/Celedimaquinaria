@@ -14,11 +14,12 @@ export type PermisoRow = {
   fechaFin: Date;
   motivo: string | null;
   estado: EstadoPermiso;
+  colaboradorId: string;
   colaborador: { nombre: string };
   resueltoPor: { nombre: string } | null;
 };
 
-export function PermisosTable({ permisos }: { permisos: PermisoRow[] }) {
+export function PermisosTable({ permisos, sessionUserId }: { permisos: PermisoRow[]; sessionUserId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -60,24 +61,27 @@ export function PermisosTable({ permisos }: { permisos: PermisoRow[] }) {
                     {p.resueltoPor && <p className="mt-0.5 text-[10px] text-muted">{p.resueltoPor.nombre}</p>}
                   </td>
                   <td className="px-5 py-2 text-right">
-                    {p.estado === "SOLICITADO" && (
-                      <div className="flex justify-end gap-1">
-                        <button
-                          disabled={pending}
-                          onClick={() => startTransition(() => resolverPermiso(p.id, "APROBADO"))}
-                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
-                        >
-                          Aprobar
-                        </button>
-                        <button
-                          disabled={pending}
-                          onClick={() => startTransition(() => resolverPermiso(p.id, "RECHAZADO"))}
-                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-red-500 transition hover:border-red-500 disabled:opacity-50"
-                        >
-                          Rechazar
-                        </button>
-                      </div>
-                    )}
+                    {p.estado === "SOLICITADO" &&
+                      (p.colaboradorId === sessionUserId ? (
+                        <span className="text-xs text-muted">Tu propia solicitud</span>
+                      ) : (
+                        <div className="flex justify-end gap-1">
+                          <button
+                            disabled={pending}
+                            onClick={() => startTransition(() => resolverPermiso(p.id, "APROBADO"))}
+                            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
+                          >
+                            Aprobar
+                          </button>
+                          <button
+                            disabled={pending}
+                            onClick={() => startTransition(() => resolverPermiso(p.id, "RECHAZADO"))}
+                            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-red-500 transition hover:border-red-500 disabled:opacity-50"
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      ))}
                   </td>
                 </tr>
               ))}

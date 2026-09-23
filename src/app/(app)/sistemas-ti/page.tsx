@@ -1,9 +1,11 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { KpiCard } from "@/components/kpi-card";
 import { TicketForm } from "@/components/sistemas-ti/ticket-form";
 import { TicketsTable } from "@/components/sistemas-ti/tickets-table";
 
 export default async function SistemasTIPage() {
+  const session = await auth();
   const [colaboradores, tickets, abiertos, altaPrioridad] = await Promise.all([
     prisma.user.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
     prisma.ticketSoporte.findMany({
@@ -23,7 +25,7 @@ export default async function SistemasTIPage() {
       </div>
 
       <TicketForm colaboradores={colaboradores.map((c) => ({ id: c.id, nombre: c.nombre }))} />
-      <TicketsTable tickets={tickets} />
+      <TicketsTable tickets={tickets} sessionUserId={session?.user.id ?? ""} />
     </div>
   );
 }

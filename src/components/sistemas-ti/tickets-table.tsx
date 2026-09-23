@@ -20,11 +20,12 @@ export type TicketRow = {
   prioridad: PrioridadTicket;
   estado: EstadoTicket;
   createdAt: Date;
+  reportadoPorId: string;
   reportadoPor: { nombre: string };
   resueltoPor: { nombre: string } | null;
 };
 
-export function TicketsTable({ tickets }: { tickets: TicketRow[] }) {
+export function TicketsTable({ tickets, sessionUserId }: { tickets: TicketRow[]; sessionUserId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -70,15 +71,18 @@ export function TicketsTable({ tickets }: { tickets: TicketRow[] }) {
                     {t.resueltoPor && <p className="mt-0.5 text-[10px] text-muted">{t.resueltoPor.nombre}</p>}
                   </td>
                   <td className="px-5 py-2 text-right">
-                    {t.estado === "ABIERTO" && (
-                      <button
-                        disabled={pending}
-                        onClick={() => startTransition(() => resolverTicket(t.id))}
-                        className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
-                      >
-                        Marcar resuelto
-                      </button>
-                    )}
+                    {t.estado === "ABIERTO" &&
+                      (t.reportadoPorId === sessionUserId ? (
+                        <span className="text-xs text-muted">Tu propio ticket</span>
+                      ) : (
+                        <button
+                          disabled={pending}
+                          onClick={() => startTransition(() => resolverTicket(t.id))}
+                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
+                        >
+                          Marcar resuelto
+                        </button>
+                      ))}
                   </td>
                 </tr>
               ))}

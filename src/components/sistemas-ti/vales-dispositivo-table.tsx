@@ -29,10 +29,17 @@ export type ValeDispositivoRow = {
   createdAt: Date;
   fechaSalida: Date | null;
   fechaRetorno: Date | null;
+  solicitanteId: string;
   solicitante: { nombre: string };
 };
 
-export function ValesDispositivoTable({ vales }: { vales: ValeDispositivoRow[] }) {
+export function ValesDispositivoTable({
+  vales,
+  sessionUserId,
+}: {
+  vales: ValeDispositivoRow[];
+  sessionUserId: string;
+}) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -73,15 +80,18 @@ export function ValesDispositivoTable({ vales }: { vales: ValeDispositivoRow[] }
                     </span>
                   </td>
                   <td className="px-5 py-2 text-right">
-                    {v.estado === "SOLICITADO" && (
-                      <button
-                        disabled={pending}
-                        onClick={() => startTransition(() => autorizarValeDispositivo(v.id))}
-                        className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
-                      >
-                        Autorizar
-                      </button>
-                    )}
+                    {v.estado === "SOLICITADO" &&
+                      (v.solicitanteId === sessionUserId ? (
+                        <span className="text-xs text-muted">Tu propia solicitud</span>
+                      ) : (
+                        <button
+                          disabled={pending}
+                          onClick={() => startTransition(() => autorizarValeDispositivo(v.id))}
+                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-emerald-500 transition hover:border-emerald-500 disabled:opacity-50"
+                        >
+                          Autorizar
+                        </button>
+                      ))}
                     {v.estado === "AUTORIZADO" && (
                       <span className="text-xs text-muted">Esperando a Vigilancia</span>
                     )}

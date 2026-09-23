@@ -41,6 +41,12 @@ export async function crearTicket(data: {
 
 export async function resolverTicket(id: string) {
   const user = await sistemasTI();
+
+  const ticket = await prisma.ticketSoporte.findUniqueOrThrow({ where: { id } });
+  if (ticket.reportadoPorId === user.id) {
+    throw new Error("No puedes resolver un ticket que tú mismo reportaste.");
+  }
+
   await prisma.ticketSoporte.update({
     where: { id },
     data: { estado: "RESUELTO", resueltoPorId: user.id, resueltoAt: new Date() },
@@ -95,11 +101,12 @@ async function siguienteFolioVale() {
   return `${prefijo}-${String(count + 1).padStart(3, "0")}`;
 }
 
-// Paso 1 del flujo de la especificación (colaborador solicita); aquí lo
-// captura Sistemas/TI en su nombre porque todavía no hay autoservicio por
-// rol. A diferencia del vale genérico de Vigilancia, este NO se autoriza al
-// crearse: requiere el paso 2 explícito (autorizarValeDispositivo) antes de
-// que Vigilancia pueda validarlo en la puerta.
+// Paso 1 del flujo de la especificación (colaborador solicita); Sistemas/TI
+// también puede capturarla en nombre de alguien (la misma acción que usa
+// "Mi cuenta" → "Mi Dispositivo"). A diferencia del vale genérico de
+// Vigilancia, este NO se autoriza al crearse: requiere el paso 2 explícito
+// (autorizarValeDispositivo) antes de que Vigilancia pueda validarlo en la
+// puerta.
 export async function crearValeDispositivo(dispositivoId: string, colaboradorId: string) {
   const dispositivo = await prisma.dispositivo.findUniqueOrThrow({ where: { id: dispositivoId } });
   const folio = await siguienteFolioVale();
@@ -119,6 +126,12 @@ export async function crearValeDispositivo(dispositivoId: string, colaboradorId:
 // de Vigilancia, sobre la misma tabla de vales — sin cambios ahí.
 export async function autorizarValeDispositivo(id: string) {
   const user = await sistemasTI();
+
+  const vale = await prisma.valeSalida.findUniqueOrThrow({ where: { id } });
+  if (vale.solicitanteId === user.id) {
+    throw new Error("No puedes autorizar la salida de tu propio equipo.");
+  }
+
   await prisma.valeSalida.update({
     where: { id },
     data: { estado: "AUTORIZADO", autorizadoPorId: user.id },
