@@ -13,6 +13,12 @@ async function vigilante() {
 
 export async function registrarChecada(colaboradorId: string, tipo: TipoChecada) {
   const registradoPorId = await vigilante();
+
+  const colaborador = await prisma.user.findUniqueOrThrow({ where: { id: colaboradorId } });
+  if (colaborador.rol === "GERENCIA") {
+    throw new Error("Gerencia no checa entrada/salida.");
+  }
+
   await prisma.asistenciaRegistro.create({
     data: { colaboradorId, tipo, registradoPorId },
   });

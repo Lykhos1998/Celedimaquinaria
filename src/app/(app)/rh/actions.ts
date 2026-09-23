@@ -103,6 +103,12 @@ export async function generarNomina(data: {
   sueldoPeriodo: number;
 }) {
   const user = await rh();
+
+  const colaborador = await prisma.user.findUniqueOrThrow({ where: { id: data.colaboradorId } });
+  if (colaborador.rol === "GERENCIA") {
+    throw new Error("Gerencia no está en nómina por asistencia.");
+  }
+
   const periodoInicio = new Date(data.periodoInicio);
   const periodoFin = new Date(data.periodoFin);
 

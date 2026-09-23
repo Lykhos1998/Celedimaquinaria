@@ -5,7 +5,8 @@ import { NominaTable } from "@/components/rh/nomina-table";
 
 export default async function RHNominaPage() {
   const [colaboradores, nominas] = await Promise.all([
-    prisma.user.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
+    // Gerencia no está en nómina por asistencia — no checa entrada/salida.
+    prisma.user.findMany({ where: { activo: true, rol: { not: "GERENCIA" } }, orderBy: { nombre: "asc" } }),
     prisma.nomina.findMany({
       include: { colaborador: true, pagadoPor: true },
       orderBy: { createdAt: "desc" },

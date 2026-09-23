@@ -15,7 +15,8 @@ export default async function ChecadorPage() {
 
   const [colaboradores, registros] = await Promise.all([
     prisma.user.findMany({
-      where: { activo: true },
+      // Gerencia no checa entrada/salida como el resto del personal.
+      where: { activo: true, rol: { not: "GERENCIA" } },
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),
