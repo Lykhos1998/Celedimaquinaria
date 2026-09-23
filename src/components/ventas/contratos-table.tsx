@@ -12,13 +12,22 @@ export type ContratoRow = {
   fechaInicio: Date;
   fechaFin: Date;
   estado: EstadoContrato;
+  asesorId: string;
   lead: { nombre: string };
   asesor: { nombre: string };
   equipo: { codigo: string } | null;
   costoDanos: number;
 };
 
-export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
+export function ContratosTable({
+  contratos,
+  sessionUserId,
+  esGerencia,
+}: {
+  contratos: ContratoRow[];
+  sessionUserId: string;
+  esGerencia: boolean;
+}) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -71,13 +80,17 @@ export function ContratosTable({ contratos }: { contratos: ContratoRow[] }) {
                   <td className="px-5 py-2 text-muted">{formatFechaHora(c.fechaFin)}</td>
                   <td className="px-5 py-2 text-right">
                     {c.estado !== "CANCELADO" && c.estado !== "TERMINADO" && (
-                      <button
-                        disabled={pending}
-                        onClick={() => startTransition(() => cancelarContrato(c.id))}
-                        className="rounded-md border border-border px-3 py-1 text-xs font-medium text-red-500 transition hover:border-red-500 disabled:opacity-50"
-                      >
-                        Cancelar
-                      </button>
+                      esGerencia || c.asesorId === sessionUserId ? (
+                        <button
+                          disabled={pending}
+                          onClick={() => startTransition(() => cancelarContrato(c.id))}
+                          className="rounded-md border border-border px-3 py-1 text-xs font-medium text-red-500 transition hover:border-red-500 disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted">Solo el asesor o Gerencia</span>
+                      )
                     )}
                   </td>
                 </tr>

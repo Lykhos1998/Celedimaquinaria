@@ -1,7 +1,11 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { TarifaForm } from "@/components/equipos/tarifa-form";
 
 export default async function TarifarioPage() {
+  const session = await auth();
+  const puedeEditarTarifas = session?.user.rol === "GERENCIA" || session?.user.rol === "ASESOR_VENTAS";
+
   const tarifas = await prisma.tarifaEquipo.findMany({
     include: { _count: { select: { equipos: true } } },
     orderBy: [{ marca: "asc" }, { modelo: "asc" }],
@@ -9,7 +13,13 @@ export default async function TarifarioPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <TarifaForm />
+      {puedeEditarTarifas ? (
+        <TarifaForm />
+      ) : (
+        <p className="rounded-xl border border-border bg-surface px-5 py-4 text-sm text-muted">
+          Solo Ventas o Gerencia pueden definir tarifas de renta.
+        </p>
+      )}
 
       <div className="rounded-xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-3">

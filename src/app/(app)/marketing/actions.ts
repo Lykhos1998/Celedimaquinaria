@@ -22,6 +22,14 @@ export async function crearLead(data: {
   asesorId?: string;
 }) {
   const creadoPorId = await marketing();
+
+  if (data.asesorId) {
+    const asesor = await prisma.user.findUniqueOrThrow({ where: { id: data.asesorId } });
+    if (asesor.rol !== "ASESOR_VENTAS") {
+      throw new Error("Solo se puede asignar un lead a un usuario con rol Asesor de Ventas.");
+    }
+  }
+
   const consecutivo = (await prisma.lead.count()) + 1;
 
   await prisma.lead.create({

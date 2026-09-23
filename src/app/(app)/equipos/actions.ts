@@ -8,7 +8,7 @@ import type { Combustible, EstadoEquipo } from "@prisma/client";
 
 async function equipos() {
   const session = await requireAcceso("equipos");
-  return session.user.id;
+  return session.user;
 }
 
 function revalidarEquipos() {
@@ -28,14 +28,14 @@ export async function crearEquipo(data: {
   horometro?: number;
   tarifaId?: string;
 }) {
-  const actualizadoPorId = await equipos();
+  const user = await equipos();
   const consecutivo = (await prisma.equipo.count()) + 1;
 
   await prisma.equipo.create({
     data: {
       ...data,
       codigo: folioEquipo(consecutivo),
-      actualizadoPorId,
+      actualizadoPorId: user.id,
     },
   });
 
@@ -43,14 +43,14 @@ export async function crearEquipo(data: {
 }
 
 export async function cambiarEstadoEquipo(equipoId: string, estado: EstadoEquipo) {
-  const actualizadoPorId = await equipos();
-  await prisma.equipo.update({ where: { id: equipoId }, data: { estado, actualizadoPorId } });
+  const user = await equipos();
+  await prisma.equipo.update({ where: { id: equipoId }, data: { estado, actualizadoPorId: user.id } });
   revalidarEquipos();
 }
 
 export async function actualizarHorometro(equipoId: string, horometro: number) {
-  const actualizadoPorId = await equipos();
-  await prisma.equipo.update({ where: { id: equipoId }, data: { horometro, actualizadoPorId } });
+  const user = await equipos();
+  await prisma.equipo.update({ where: { id: equipoId }, data: { horometro, actualizadoPorId: user.id } });
   revalidarEquipos();
 }
 
@@ -64,7 +64,10 @@ export async function crearTarifa(data: {
   precioDia7: number;
   precioDia15: number;
 }) {
-  await equipos();
+  const user = await equipos();
+  if (user.rol !== "GERENCIA" && user.rol !== "ASESOR_VENTAS") {
+    throw new Error("Solo Ventas o Gerencia pueden definir tarifas de renta.");
+  }
   await prisma.tarifaEquipo.create({ data });
   revalidarEquipos();
 }
