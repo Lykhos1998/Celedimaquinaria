@@ -93,6 +93,17 @@ export async function crearRefaccion(ordenServicioId: string, descripcion: strin
 
 export async function marcarRefaccionRecibida(refaccionId: string) {
   await taller();
+
+  const refaccion = await prisma.solicitudRefaccion.findUniqueOrThrow({
+    where: { id: refaccionId },
+    include: { ordenCompra: true },
+  });
+  if (refaccion.ordenCompra) {
+    throw new Error(
+      "Esta refacción ya tiene una orden de compra vinculada; debe marcarse recibida desde Compras.",
+    );
+  }
+
   await prisma.solicitudRefaccion.update({ where: { id: refaccionId }, data: { estado: "RECIBIDA" } });
   revalidarTaller();
 }
