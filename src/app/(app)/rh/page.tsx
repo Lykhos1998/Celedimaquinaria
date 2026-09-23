@@ -1,9 +1,13 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { KpiCard } from "@/components/kpi-card";
 import { ColaboradorForm } from "@/components/rh/colaborador-form";
 import { ColaboradoresTable } from "@/components/rh/colaboradores-table";
 
 export default async function RHPage() {
+  const session = await auth();
+  const esGerencia = session?.user.rol === "GERENCIA";
+
   const inicioDelDia = new Date();
   inicioDelDia.setHours(0, 0, 0, 0);
 
@@ -22,9 +26,13 @@ export default async function RHPage() {
         <KpiCard label="Permisos pendientes" value={permisosPendientes} />
       </div>
 
-      <ColaboradorForm />
+      <ColaboradorForm esGerencia={esGerencia} />
 
-      <ColaboradoresTable colaboradores={colaboradores} />
+      <ColaboradoresTable
+        colaboradores={colaboradores}
+        sessionUserId={session?.user.id ?? ""}
+        esGerencia={esGerencia}
+      />
     </div>
   );
 }

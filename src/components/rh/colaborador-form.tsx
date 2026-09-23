@@ -5,14 +5,19 @@ import { crearColaborador } from "@/app/(app)/rh/actions";
 import { ROL_LABEL } from "@/lib/roles";
 import type { Rol } from "@prisma/client";
 
-const ROLES = Object.keys(ROL_LABEL) as Rol[];
+const TODOS_LOS_ROLES = Object.keys(ROL_LABEL) as Rol[];
 
-export function ColaboradorForm() {
+export function ColaboradorForm({ esGerencia }: { esGerencia: boolean }) {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<Rol>("VIGILANTE");
   const [pending, startTransition] = useTransition();
+
+  // Solo Gerencia puede dar de alta a otro usuario con rol Gerencia — el
+  // servidor lo vuelve a validar, esto solo evita ofrecer una opción que de
+  // todas formas se rechazaría.
+  const ROLES = esGerencia ? TODOS_LOS_ROLES : TODOS_LOS_ROLES.filter((r) => r !== "GERENCIA");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();

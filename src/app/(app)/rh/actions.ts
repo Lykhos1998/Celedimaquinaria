@@ -24,7 +24,14 @@ export async function crearColaborador(data: {
   password: string;
   rol: Rol;
 }) {
-  await rh();
+  const user = await rh();
+
+  // Solo Gerencia puede dar de alta a otro usuario con rol Gerencia — si no,
+  // cualquiera con acceso a RH podría crearse un "dueño" nuevo.
+  if (data.rol === "GERENCIA" && user.rol !== "GERENCIA") {
+    throw new Error("Solo Gerencia puede dar de alta a un usuario con rol Gerencia.");
+  }
+
   const passwordHash = await bcrypt.hash(data.password, 10);
   await prisma.user.create({
     data: { nombre: data.nombre, email: data.email, rol: data.rol, passwordHash },
@@ -33,7 +40,19 @@ export async function crearColaborador(data: {
 }
 
 export async function toggleActivoColaborador(id: string, activo: boolean) {
-  await rh();
+  const user = await rh();
+
+  // Nadie se da de baja a sí mismo desde aquí (te deja sin acceso sin que
+  // nadie más lo note), y solo Gerencia puede dar de baja a otro Gerencia.
+  if (id === user.id) {
+    throw new Error("No puedes dar de baja tu propia cuenta.");
+  }
+
+  const colaborador = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (colaborador.rol === "GERENCIA" && user.rol !== "GERENCIA") {
+    throw new Error("Solo Gerencia puede dar de baja a otro usuario con rol Gerencia.");
+  }
+
   await prisma.user.update({ where: { id }, data: { activo } });
   revalidarRH();
 }
